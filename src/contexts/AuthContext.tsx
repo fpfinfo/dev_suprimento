@@ -64,6 +64,26 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         position: 'Servidor Público',
         department: 'Administrativo'
       };
+    } else if (email === 'fabio.freitas@tjpa.jus.br' && password === '123456') {
+      userData = {
+        id: '3',
+        name: 'Fábio Freitas',
+        email: 'fabio.freitas@tjpa.jus.br',
+        role: 'administrador',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        position: 'Analista de Sistemas',
+        department: 'Suprimento de Fundos'
+      };
+    } else if (email === 'servidor@tjpa.jus.br' && password === '123456') {
+      userData = {
+        id: '4',
+        name: 'João Silva Santos',
+        email: 'servidor@tjpa.jus.br',
+        role: 'suprido',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face',
+        position: 'Analista Judiciário',
+        department: 'Vara Criminal'
+      };
     } else {
       throw new Error('Credenciais inválidas');
     }

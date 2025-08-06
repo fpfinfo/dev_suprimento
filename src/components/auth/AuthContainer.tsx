@@ -12,7 +12,7 @@ const AuthContainer: React.FC = () => {
     try {
       await login(email, password);
     } catch (error) {
-      throw error; // Repassar erro para o componente de login
+      throw error;
     }
   };
 
