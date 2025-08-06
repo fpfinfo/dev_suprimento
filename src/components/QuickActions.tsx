@@ -31,8 +31,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   const { user, canAccessModule } = useAuth();
 
   const actions = [
-    {
-      title: 'Nova Solicitação',
     // Ações apenas para usuários supridos
     ...(user?.role === 'suprido' ? [
       {

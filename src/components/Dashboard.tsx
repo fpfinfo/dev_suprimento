@@ -31,32 +31,27 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   const { user, canAccessModule } = useAuth();
 
   const actions = [
-    {
+    ...(user?.role !== 'administrador' ? [{
       title: 'Nova Solicitação',
-    // Ações apenas para usuários supridos
-                  ? 'Supervisão e administração do sistema' 
-                  : 'Seus dados e solicitações de suprimento de fundos'}
-        title: 'Nova Solicitação',
-        icon: <Plus size={24} className="text-blue-600" />,
-        iconBg: 'bg-blue-100',
-        onClick: () => onNavigate?.('supply-funds'),
-        module: 'supply-funds'
-      },
-      {
-        title: 'Prestação de Contas',
-        icon: <BarChart3 size={24} className="text-purple-600" />,
-        iconBg: 'bg-purple-100',
-        onClick: () => onNavigate?.('accounting-submission'),
-        module: 'accounting-submission'
-      },
-      {
-        title: 'Reembolso',
-        icon: <Calendar size={24} className="text-orange-600" />,
-        iconBg: 'bg-orange-100',
-        onClick: () => onNavigate?.('reimbursement-submission'),
-        module: 'reimbursement-submission'
-      }
-    ] : []),
+      icon: <Plus size={24} className="text-blue-600" />,
+      iconBg: 'bg-blue-100',
+      onClick: () => onNavigate?.('supply-funds'),
+      module: 'supply-funds'
+    },
+    {
+      title: 'Prestação de Contas',
+      icon: <BarChart3 size={24} className="text-purple-600" />,
+      iconBg: 'bg-purple-100',
+      onClick: () => onNavigate?.('accounting-submission'),
+      module: 'accounting-submission'
+    },
+    {
+      title: 'Reembolso',
+      icon: <Calendar size={24} className="text-orange-600" />,
+      iconBg: 'bg-orange-100',
+      onClick: () => onNavigate?.('reimbursement-submission'),
+      module: 'reimbursement-submission'
+    }] : []),
     // Ações para administradores
     ...(user?.role === 'administrador' ? [{
       title: 'SOSFU - Análise',

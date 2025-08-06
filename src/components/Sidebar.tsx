@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Plus, BarChart3, Calendar, Settings } from 'lucide-react';
+import { Plus, BarChart3, Calendar, Settings, DollarSign, Receipt } from 'lucide-react';
 
 interface ActionButtonProps {
   title: string;
@@ -33,7 +33,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   const actions = [
     {
       title: 'Nova Solicitação',
-            {modules.length > 0 && renderSection('Módulos', modules, 'module')}
+      icon: <Plus size={24} className="text-blue-600" />,
       iconBg: 'bg-blue-100',
       onClick: () => onNavigate?.('supply-funds'),
       module: 'supply-funds'
@@ -59,20 +59,27 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       onClick: () => onNavigate?.('reimbursement-submission'),
       module: 'reimbursement-submission'
     },
-    ...(user?.role === 'administrador' ? [{
-      title: 'Usuários',
-      icon: <Settings size={24} className="text-red-600" />,
-      iconBg: 'bg-red-100',
-      onClick: () => onNavigate?.('users-management'),
-      module: 'users-management'
-    }] : []),
-    ...(user?.role === 'administrador' ? [{
-      title: 'Configurações',
-      icon: <Settings size={24} className="text-gray-600" />,
-      iconBg: 'bg-gray-100',
-      onClick: () => onNavigate?.('system-settings'),
-      module: 'system-settings'
-    }] : [])
+    // Módulos apenas para usuários supridos
+    ...(user?.role === 'suprido' ? [
+      {
+        title: 'Suprimento de Fundos',
+        icon: <DollarSign size={20} />,
+        iconBg: 'bg-blue-100',
+        onClick: () => onNavigate?.('supply-funds')
+      },
+      {
+        title: 'Prestação de Contas',
+        icon: <Receipt size={20} />,
+        iconBg: 'bg-purple-100',
+        onClick: () => onNavigate?.('accounting-submission')
+      },
+      {
+        title: 'Reembolso de Despesas',
+        icon: <BarChart3 size={20} />,
+        iconBg: 'bg-orange-100',
+        onClick: () => onNavigate?.('reimbursement-submission')
+      }
+    ] : [])
   ];
 
   // Filtrar ações baseadas nas permissões do usuário
