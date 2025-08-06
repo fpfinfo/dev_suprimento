@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   Home, 
   DollarSign, 
@@ -41,6 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [expandedItems, setExpandedItems] = useState<string[]>(['suprimento']);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
+  const { user, canAccessModule } = useAuth();
 
   const toggleExpanded = (key: string) => {
     if (isCollapsed) return;
@@ -113,19 +115,19 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
       ]
     },
-    {
+    ...(user?.role === 'administrador' ? [{
       icon: <Users size={20} />,
       label: 'Usuários',
       onClick: () => onNavigate?.('users-management')
-    }
+    }] : [])
   ];
 
   const system: MenuItem[] = [
-    {
+    ...(user?.role === 'administrador' ? [{
       icon: <Settings size={20} />,
       label: 'Configurações',
       onClick: () => onNavigate?.('system-settings')
-    }
+    }] : [])
   ];
 
   const renderMenuItem = (item: MenuItem, key: string, level = 0) => {
@@ -285,8 +287,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex-1 py-6">
             {renderSection('Menu Principal', menuItems, 'main')}
             {renderSection('Módulos', modules, 'module')}
-            {renderSection('Administração', administration, 'admin')}
-            {renderSection('Sistema', system, 'system')}
+            {user?.role === 'administrador' && renderSection('Administração', administration, 'admin')}
+            {user?.role === 'administrador' && system.length > 0 && renderSection('Sistema', system, 'system')}
           </div>
 
           {/* Footer */}

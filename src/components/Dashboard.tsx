@@ -12,6 +12,7 @@ import SupplyFundsModule from './suprimento/SupplyFundsModule';
 import UsersManagement from './users/UsersManagement';
 import SystemSettings from './settings/SystemSettings';
 import { useBreadcrumb } from '../contexts/BreadcrumbContext';
+import { useAuth } from '../contexts/AuthContext';
 import { 
   TrendingUp, 
   TrendingDown, 
@@ -41,8 +42,14 @@ const Dashboard: React.FC<DashboardProps> = ({
   onViewChange 
 }) => {
   const { setBreadcrumbs } = useBreadcrumb();
+  const { user, canAccessModule } = useAuth();
 
   const setCurrentView = (view: string) => {
+    // Verificar se o usuário tem acesso ao módulo
+    if (!canAccessModule(view)) {
+      alert('Você não tem permissão para acessar este módulo.');
+      return;
+    }
     onViewChange?.(view);
   };
 
@@ -180,6 +187,25 @@ const Dashboard: React.FC<DashboardProps> = ({
   };
 
   const renderCurrentView = () => {
+    // Verificar acesso antes de renderizar
+    if (!canAccessModule(currentView)) {
+      return (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
+              <AlertTriangle size={32} className="text-red-600" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">
+              Acesso Negado
+            </h3>
+            <p className="text-gray-600 dark:text-gray-400">
+              Você não tem permissão para acessar este módulo.
+            </p>
+          </div>
+        </div>
+      );
+    }
+
     switch (currentView) {
       case 'request-analysis':
         return <RequestAnalysis />;
@@ -207,14 +233,22 @@ const Dashboard: React.FC<DashboardProps> = ({
                   <span className="text-white text-sm font-bold">🏛</span>
                 </div>
                 <div>
-                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Portal de Gestão</h1>
+                  <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                    Portal de Gestão {user?.role === 'administrador' ? '- Administrador' : '- Suprido'}
+                  </h1>
                   <p className="text-sm text-gray-600 dark:text-gray-400">TJ-PA</p>
                 </div>
               </div>
               
               <div className="mt-4">
-                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">Dashboard Executivo</h2>
-                <p className="text-gray-600 dark:text-gray-400">Visão completa do sistema de suprimento de fundos</p>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-1">
+                  {user?.role === 'administrador' ? 'Dashboard Executivo' : 'Dashboard Pessoal'}
+                </h2>
+                <p className="text-gray-600 dark:text-gray-400">
+                  {user?.role === 'administrador' 
+                    ? 'Visão completa do sistema de suprimento de fundos' 
+                    : 'Seus dados e solicitações de suprimento de fundos'}
+                </p>
               </div>
             </div>
 

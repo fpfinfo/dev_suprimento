@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Menu, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
 import { useBreadcrumb } from '../contexts/BreadcrumbContext';
 import { useTheme } from '../contexts/ThemeContext';
@@ -12,8 +13,9 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) => {
   const { breadcrumbs } = useBreadcrumb();
   const { theme, toggleTheme, isDark } = useTheme();
+  const { user: authUser } = useAuth();
 
-  const user = currentUser || {
+  const user = authUser || currentUser || {
     name: 'Usuário',
     role: 'Visitante',
     avatar: null
@@ -63,7 +65,9 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) =
           <div className="flex items-center space-x-3">
             <div className="text-right">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
-              <div className="text-xs text-gray-500 dark:text-gray-400">{user.role}</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">
+                {user.role === 'administrador' ? 'Administrador' : 'Suprido'}
+              </div>
             </div>
             
             <div className="relative">

@@ -1,4 +1,5 @@
 import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
 import { Plus, BarChart3, Calendar, Settings } from 'lucide-react';
 
 interface ActionButtonProps {
@@ -27,48 +28,61 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
+  const { user, canAccessModule } = useAuth();
+
   const actions = [
     {
       title: 'Nova Solicitação',
       icon: <Plus size={24} className="text-blue-600" />,
       iconBg: 'bg-blue-100',
-      onClick: () => onNavigate?.('supply-funds')
+      onClick: () => onNavigate?.('supply-funds'),
+      module: 'supply-funds'
     },
     {
       title: 'Prestação de Contas',
       icon: <BarChart3 size={24} className="text-purple-600" />,
       iconBg: 'bg-purple-100',
-      onClick: () => onNavigate?.('accounting-submission')
+      onClick: () => onNavigate?.('accounting-submission'),
+      module: 'accounting-submission'
     },
-    {
+    ...(user?.role === 'administrador' ? [{
       title: 'SOSFU - Análise',
       icon: <Settings size={24} className="text-green-600" />,
       iconBg: 'bg-green-100',
-      onClick: () => onNavigate?.('request-analysis')
-    },
+      onClick: () => onNavigate?.('request-analysis'),
+      module: 'request-analysis'
+    }] : []),
     {
       title: 'Reembolso',
       icon: <Calendar size={24} className="text-orange-600" />,
       iconBg: 'bg-orange-100',
-      onClick: () => onNavigate?.('reimbursement-submission')
+      onClick: () => onNavigate?.('reimbursement-submission'),
+      module: 'reimbursement-submission'
     },
-    {
+    ...(user?.role === 'administrador' ? [{
       title: 'Usuários',
       icon: <Settings size={24} className="text-red-600" />,
       iconBg: 'bg-red-100',
-      onClick: () => onNavigate?.('users-management')
-    },
-    {
+      onClick: () => onNavigate?.('users-management'),
+      module: 'users-management'
+    }] : []),
+    ...(user?.role === 'administrador' ? [{
       title: 'Configurações',
       icon: <Settings size={24} className="text-gray-600" />,
       iconBg: 'bg-gray-100',
-      onClick: () => onNavigate?.('system-settings')
-    }
+      onClick: () => onNavigate?.('system-settings'),
+      module: 'system-settings'
+    }] : [])
   ];
 
+  // Filtrar ações baseadas nas permissões do usuário
+  const filteredActions = actions.filter(action => 
+    !action.module || canAccessModule(action.module)
+  );
+
   return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-        {actions.map((action, index) => (
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${filteredActions.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4`}>
+        {filteredActions.map((action, index) => (
           <ActionButton
             key={index}
             title={action.title}

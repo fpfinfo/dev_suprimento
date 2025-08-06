@@ -1,37 +1,24 @@
 import React, { useState } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import LoginPage from './LoginPage';
 import RegisterPage from './RegisterPage';
 import ForgotPasswordPage from './ForgotPasswordPage';
 
-interface AuthContainerProps {
-  onAuthenticated?: (user: any) => void;
-}
-
-const AuthContainer: React.FC<AuthContainerProps> = ({ onAuthenticated }) => {
+const AuthContainer: React.FC = () => {
   const [currentView, setCurrentView] = useState<'login' | 'register' | 'forgot'>('login');
+  const { login } = useAuth();
 
-  const handleLogin = (email: string, password: string) => {
-    // Simulação de autenticação
-    const user = {
-      id: '1',
-      name: 'Fábio Freitas',
-      email: email,
-      role: 'Administrador',
-      avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-    };
-    onAuthenticated?.(user);
+  const handleLogin = async (email: string, password: string) => {
+    try {
+      await login(email, password);
+    } catch (error) {
+      throw error; // Repassar erro para o componente de login
+    }
   };
 
   const handleRegister = (userData: any) => {
-    // Simulação de cadastro
-    const user = {
-      id: Date.now().toString(),
-      name: userData.name,
-      email: userData.email,
-      role: 'Usuário',
-      avatar: null
-    };
-    onAuthenticated?.(user);
+    // Simulação de cadastro - em produção, implementar registro real
+    alert('Funcionalidade de cadastro será implementada em breve.');
   };
 
   const handlePasswordReset = (email: string) => {
