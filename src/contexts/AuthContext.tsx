@@ -38,6 +38,9 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       onClick: () => onNavigate?.('supply-funds'),
       module: 'supply-funds'
     },
+    {
+      title: 'Prestação de Contas',
+      icon: <BarChart3 size={24} className="text-purple-600" />,
       iconBg: 'bg-purple-100',
       onClick: () => onNavigate?.('accounting-submission'),
       module: 'accounting-submission'
@@ -78,6 +81,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   );
 
   return (
+    <div className="space-y-6">
       <div className={`grid grid-cols-2 md:grid-cols-3 ${filteredActions.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4`}>
         {filteredActions.map((action, index) => (
           <ActionButton
@@ -89,6 +93,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
           />
         ))}
       </div>
+    </div>
   );
 };
 
