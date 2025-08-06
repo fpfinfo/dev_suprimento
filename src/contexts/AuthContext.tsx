@@ -1,123 +1,100 @@
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import React from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Plus, BarChart3, Calendar, Settings } from 'lucide-react';
 
-interface User {
-  id: string;
-  name: string;
-  email: string;
-  role: 'administrador' | 'suprido';
+interface ActionButtonProps {
+  title: string;
+  icon: React.ReactNode;
+  iconBg: string;
+  onClick?: () => void;
 }
 
-interface AuthContextType {
-  user: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  isAuthenticated: boolean;
-  canAccessModule: (module: string) => boolean;
-}
-
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
-
-// Usuários de teste
-const testUsers: User[] = [
-  {
-    id: '1',
-    name: 'Fábio Freitas',
-    email: 'admin@tjpa.jus.br',
-    role: 'administrador'
-  },
-  {
-    id: '2',
-    name: 'Administrador Sistema',
-    email: 'fabio.freitas@tjpa.jus.br',
-    role: 'administrador'
-  },
-  {
-    id: '3',
-    name: 'Usuário Suprido',
-    email: 'suprido@tjpa.jus.br',
-    role: 'suprido'
-  },
-  {
-    id: '4',
-    name: 'João Silva Santos',
-    email: 'servidor@tjpa.jus.br',
-    role: 'suprido'
-  }
-];
-
-// Definir permissões por módulo
-const modulePermissions: Record<string, string[]> = {
-  'dashboard': ['administrador', 'suprido'],
-  'supply-funds': ['suprido'],
-  'accounting-submission': ['suprido'],
-  'reimbursement-submission': ['suprido'],
-  'request-analysis': ['administrador'],
-  'accounting-analysis': ['administrador'],
-  'reimbursement-analysis': ['administrador'],
-  'users-management': ['administrador'],
-  'system-settings': ['administrador']
-};
-
-export const AuthProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-
-  useEffect(() => {
-    // Verificar se há usuário salvo no localStorage
-    const savedUser = localStorage.getItem('user');
-    if (savedUser) {
-      setUser(JSON.parse(savedUser));
-    }
-  }, []);
-
-  const login = async (email: string, password: string): Promise<boolean> => {
-    try {
-      // Simular autenticação
-      const foundUser = testUsers.find(u => u.email === email);
-      
-      if (foundUser && password === '123456') {
-        setUser(foundUser);
-        localStorage.setItem('user', JSON.stringify(foundUser));
-        return true;
-      }
-      
-      return false;
-    } catch (error) {
-      console.error('Erro no login:', error);
-      return false;
-    }
-  };
-
-  const logout = () => {
-    setUser(null);
-    localStorage.removeItem('user');
-  };
-
-  const canAccessModule = (module: string): boolean => {
-    if (!user) return false;
-    
-    const allowedRoles = modulePermissions[module];
-    return allowedRoles ? allowedRoles.includes(user.role) : false;
-  };
-
-  const value: AuthContextType = {
-    user,
-    login,
-    logout,
-    isAuthenticated: !!user,
-    canAccessModule
-  };
-
+const ActionButton: React.FC<ActionButtonProps> = ({ title, icon, iconBg, onClick }) => {
   return (
-    <AuthContext.Provider value={value}>
-      {children}
-    </AuthContext.Provider>
+    <button
+      onClick={onClick}
+      className="flex flex-col items-center p-6 bg-white rounded-lg border border-gray-200 hover:shadow-md hover:border-gray-300 transition-all duration-200 group"
+    >
+      <div className={`w-16 h-16 ${iconBg} rounded-lg flex items-center justify-center mb-4 group-hover:scale-105 transition-transform duration-200`}>
+        {icon}
+      </div>
+      <span className="text-sm font-medium text-gray-900">{title}</span>
+    </button>
   );
 };
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
+interface QuickActionsProps {
+  onNavigate?: (view: string) => void;
+}
+
+const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
+  const { user, canAccessModule } = useAuth();
+
+  const actions = [
+    {
+      title: 'Nova Solicitação',
+      icon: <Plus size={24} className="text-blue-600" />,
+      iconBg: 'bg-blue-100',
+      onClick: () => onNavigate?.('supply-funds'),
+      module: 'supply-funds'
+    },
+    {
+      title: 'Prestação de Contas',
+      icon: <BarChart3 size={24} className="text-purple-600" />,
+      iconBg: 'bg-purple-100',
+      onClick: () => onNavigate?.('accounting-submission'),
+      module: 'accounting-submission'
+    },
+    ...(user?.role === 'administrador' ? [{
+      title: 'SOSFU - Análise',
+      icon: <Settings size={24} className="text-green-600" />,
+      iconBg: 'bg-green-100',
+      onClick: () => onNavigate?.('request-analysis'),
+      module: 'request-analysis'
+    }] : []),
+    {
+      title: 'Reembolso',
+      icon: <Calendar size={24} className="text-orange-600" />,
+      iconBg: 'bg-orange-100',
+      onClick: () => onNavigate?.('reimbursement-submission'),
+      module: 'reimbursement-submission'
+    },
+    ...(user?.role === 'administrador' ? [{
+      title: 'Usuários',
+      icon: <Settings size={24} className="text-red-600" />,
+      iconBg: 'bg-red-100',
+      onClick: () => onNavigate?.('users-management'),
+      module: 'users-management'
+    }] : []),
+    ...(user?.role === 'administrador' ? [{
+      title: 'Configurações',
+      icon: <Settings size={24} className="text-gray-600" />,
+      iconBg: 'bg-gray-100',
+      onClick: () => onNavigate?.('system-settings'),
+      module: 'system-settings'
+    }] : [])
+  ];
+
+  // Filtrar ações baseadas nas permissões do usuário
+  const filteredActions = actions.filter(action => 
+    !action.module || canAccessModule(action.module)
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className={`grid grid-cols-2 md:grid-cols-3 ${filteredActions.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4`}>
+        {filteredActions.map((action, index) => (
+          <ActionButton
+            key={index}
+            title={action.title}
+            icon={action.icon}
+            iconBg={action.iconBg}
+            onClick={action.onClick}
+          />
+        ))}
+      </div>
+    </div>
+  );
 };
+
+export default QuickActions;
