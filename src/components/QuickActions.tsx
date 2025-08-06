@@ -33,18 +33,31 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   const actions = [
     {
       title: 'Nova Solicitação',
-      icon: <Plus size={24} className="text-blue-600" />,
-      iconBg: 'bg-blue-100',
-      onClick: () => onNavigate?.('supply-funds'),
-      module: 'supply-funds'
-    },
-    {
-      title: 'Prestação de Contas',
-      icon: <BarChart3 size={24} className="text-purple-600" />,
-      iconBg: 'bg-purple-100',
-      onClick: () => onNavigate?.('accounting-submission'),
-      module: 'accounting-submission'
-    },
+    // Ações apenas para usuários supridos
+    ...(user?.role === 'suprido' ? [
+      {
+        title: 'Nova Solicitação',
+        icon: <Plus size={24} className="text-blue-600" />,
+        iconBg: 'bg-blue-100',
+        onClick: () => onNavigate?.('supply-funds'),
+        module: 'supply-funds'
+      },
+      {
+        title: 'Prestação de Contas',
+        icon: <BarChart3 size={24} className="text-purple-600" />,
+        iconBg: 'bg-purple-100',
+        onClick: () => onNavigate?.('accounting-submission'),
+        module: 'accounting-submission'
+      },
+      {
+        title: 'Reembolso',
+        icon: <Calendar size={24} className="text-orange-600" />,
+        iconBg: 'bg-orange-100',
+        onClick: () => onNavigate?.('reimbursement-submission'),
+        module: 'reimbursement-submission'
+      }
+    ] : []),
+    // Ações para administradores
     ...(user?.role === 'administrador' ? [{
       title: 'SOSFU - Análise',
       icon: <Settings size={24} className="text-green-600" />,
@@ -52,13 +65,6 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       onClick: () => onNavigate?.('request-analysis'),
       module: 'request-analysis'
     }] : []),
-    {
-      title: 'Reembolso',
-      icon: <Calendar size={24} className="text-orange-600" />,
-      iconBg: 'bg-orange-100',
-      onClick: () => onNavigate?.('reimbursement-submission'),
-      module: 'reimbursement-submission'
-    },
     ...(user?.role === 'administrador' ? [{
       title: 'Usuários',
       icon: <Settings size={24} className="text-red-600" />,
