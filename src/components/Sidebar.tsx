@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const administration: MenuItem[] = [
-    {
+    ...(user?.role === 'administrador' ? [{
       icon: <Shield size={20} />,
       label: 'SOSFU - Supervisão',
       badge: 8,
@@ -114,7 +114,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           onClick: () => onNavigate?.('reimbursement-analysis')
         }
       ]
-    },
+    }] : []),
     ...(user?.role === 'administrador' ? [{
       icon: <Users size={20} />,
       label: 'Usuários',
@@ -287,7 +287,7 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex-1 py-6">
             {renderSection('Menu Principal', menuItems, 'main')}
             {renderSection('Módulos', modules, 'module')}
-            {user?.role === 'administrador' && renderSection('Administração', administration, 'admin')}
+            {user?.role === 'administrador' && administration.length > 0 && renderSection('Administração', administration, 'admin')}
             {user?.role === 'administrador' && system.length > 0 && renderSection('Sistema', system, 'system')}
           </div>
 

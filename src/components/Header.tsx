@@ -1,6 +1,6 @@
 import React from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Menu, Bell, User, LogOut, Sun, Moon } from 'lucide-react';
+import { Menu, Bell, User, LogOut, Sun, Moon, Shield } from 'lucide-react';
 import { useBreadcrumb } from '../contexts/BreadcrumbContext';
 import { useTheme } from '../contexts/ThemeContext';
 
@@ -47,6 +47,27 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) =
         </div>
 
         <div className="flex items-center space-x-4">
+          {/* User Role Indicator */}
+          <div className="hidden md:flex items-center">
+            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+              user.role === 'administrador' 
+                ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+            }`}>
+              {user.role === 'administrador' ? (
+                <>
+                  <Shield size={12} className="mr-1" />
+                  Admin
+                </>
+              ) : (
+                <>
+                  <User size={12} className="mr-1" />
+                  Suprido
+                </>
+              )}
+            </span>
+          </div>
+          
           <button 
             onClick={toggleTheme}
             className="p-2 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-md transition-colors duration-200"

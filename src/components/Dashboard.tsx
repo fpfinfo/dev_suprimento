@@ -29,7 +29,10 @@ import {
   CheckCircle,
   Clock,
   Target,
-  Zap
+  Zap,
+  Scale,
+  Shield,
+  User
 } from 'lucide-react';
 
 interface DashboardProps {
@@ -191,7 +194,7 @@ const Dashboard: React.FC<DashboardProps> = ({
     if (!canAccessModule(currentView)) {
       return (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-center">
+          <div className="text-center p-8 bg-white dark:bg-gray-800 rounded-xl shadow-lg border border-gray-200 dark:border-gray-700">
             <div className="w-16 h-16 bg-red-100 dark:bg-red-900 rounded-full flex items-center justify-center mx-auto mb-4">
               <AlertTriangle size={32} className="text-red-600" />
             </div>
@@ -199,8 +202,16 @@ const Dashboard: React.FC<DashboardProps> = ({
               Acesso Negado
             </h3>
             <p className="text-gray-600 dark:text-gray-400">
-              Você não tem permissão para acessar este módulo.
+              Seu perfil de <strong>{user?.role === 'administrador' ? 'Administrador' : 'Suprido'}</strong> não tem permissão para acessar este módulo.
             </p>
+            <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
+              <p className="text-sm text-yellow-800 dark:text-yellow-200">
+                {user?.role === 'administrador' 
+                  ? 'Como administrador, você tem acesso a todos os módulos. Se está vendo esta mensagem, pode ser um erro do sistema.'
+                  : 'Como usuário suprido, você tem acesso aos módulos: Suprimento de Fundos, Prestação de Contas e Reembolso de Despesas.'
+                }
+              </p>
+            </div>
           </div>
         </div>
       );
@@ -230,7 +241,7 @@ const Dashboard: React.FC<DashboardProps> = ({
             <div>
               <div className="flex items-center mb-2">
                 <div className="w-8 h-8 bg-blue-700 rounded-lg flex items-center justify-center mr-3">
-                  <span className="text-white text-sm font-bold">🏛</span>
+                  <Scale size={20} className="text-white" />
                 </div>
                 <div>
                   <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
@@ -249,6 +260,27 @@ const Dashboard: React.FC<DashboardProps> = ({
                     ? 'Visão completa do sistema de suprimento de fundos' 
                     : 'Seus dados e solicitações de suprimento de fundos'}
                 </p>
+              </div>
+              
+              {/* Role Badge */}
+              <div className="mt-4">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                  user?.role === 'administrador' 
+                    ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
+                    : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
+                }`}>
+                  {user?.role === 'administrador' ? (
+                    <>
+                      <Shield size={16} className="mr-2" />
+                      Administrador do Sistema
+                    </>
+                  ) : (
+                    <>
+                      <User size={16} className="mr-2" />
+                      Usuário Suprido
+                    </>
+                  )}
+                </span>
               </div>
             </div>
 
