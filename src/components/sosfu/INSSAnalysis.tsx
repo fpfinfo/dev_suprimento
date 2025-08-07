@@ -4,21 +4,25 @@ import {
   Filter, 
   Plus,
   Download,
+  Upload,
+  FileText,
+  AlertCircle,
+  CheckCircle,
+  Info,
   Eye,
   Edit,
   Trash2,
-  FileText,
   DollarSign,
   Calendar,
   MapPin,
   Building,
   User,
-  CheckCircle,
-  AlertTriangle,
   X,
   Save,
   Calculator,
-  BarChart3
+  BarChart3,
+  FileSpreadsheet,
+  AlertTriangle
 } from 'lucide-react';
 
 interface INSSRecolhimento {
@@ -43,6 +47,27 @@ interface INSSRecolhimento {
   criadoEm: string;
 }
 
+interface CSVUploadResult {
+  success: boolean;
+  totalRows: number;
+  validRows: number;
+  errors: string[];
+  warnings: string[];
+}
+
+interface ReportData {
+  periodo: string;
+  municipio: string;
+  totalRecolhimentos: number;
+  valorBrutoTotal: number;
+  inss11Total: number;
+  inss20Total: number;
+  inssTotal: number;
+  recolhimentosValidados: number;
+  recolhimentosPendentes: number;
+  inconsistenciasEncontradas: string[];
+}
+
 const INSSAnalysis: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
@@ -50,6 +75,9 @@ const INSSAnalysis: React.FC = () => {
   const [selectedRecolhimento, setSelectedRecolhimento] = useState<INSSRecolhimento | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [showReportModal, setShowReportModal] = useState(false);
+  const [showCSVModal, setShowCSVModal] = useState(false);
+  const [csvFile, setCSVFile] = useState<File | null>(null);
+  const [uploadResult, setUploadResult] = useState<CSVUploadResult | null>(null);
   const [isEditing, setIsEditing] = useState(false);
 
   // Dados simulados
@@ -132,7 +160,9 @@ const INSSAnalysis: React.FC = () => {
   const [reportFilters, setReportFilters] = useState({
     dataInicio: '',
     dataFim: '',
-    municipio: 'all'
+    municipio: 'all',
+    incluirInconsistencias: true,
+    formato: 'pdf'
   });
 
   // Estatísticas
@@ -310,6 +340,305 @@ const INSSAnalysis: React.FC = () => {
     alert(`Relatório gerado com ${relatorio.totalRecolhimentos} recolhimentos. Total INSS: ${formatCurrency(relatorio.inssTotal)}`);
   };
 
+  const generateDetailedReport = () => {
+    if (!reportFilters.dataInicio || !reportFilters.dataFim) {
+      alert('Selecione o período para o relatório');
+      return;
+    }
+
+    const filteredData = recolhimentos.filter(r => {
+      const dataRecolhimento = new Date(r.dataNotaFiscal.split('/').reverse().join('-'));
+      const dataInicio = new Date(reportFilters.dataInicio);
+      const dataFim = new Date(reportFilters.dataFim);
+      
+      const dentroPeríodo = dataRecolhimento >= dataInicio && dataRecolhimento <= dataFim;
+      const municipioMatch = reportFilters.municipio === 'all' || r.municipio === reportFilters.municipio;
+      
+      return dentroPeríodo && municipioMatch;
+    });
+
+    // Identificar inconsistências
+    const inconsistencias: string[] = [];
+    filteredData.forEach(r => {
+      if (!validateCPF(r.cpfPrestador)) {
+        inconsistencias.push(`CPF inválido: ${r.cpfPrestador} - ${r.nomePrestador}`);
+      }
+      
+      const inssCalculado11 = Math.round(r.valorBrutoNF * 0.11 * 100) / 100;
+      const inssCalculado20 = Math.round(r.valorBrutoNF * 0.20 * 100) / 100;
+      
+      if (Math.abs(r.inss11Contribuinte - inssCalculado11) > 0.01) {
+        inconsistencias.push(`INSS 11% incorreto: ${r.nomePrestador} - Calculado: ${formatCurrency(inssCalculado11)}, Informado: ${formatCurrency(r.inss11Contribuinte)}`);
+      }
+      
+      if (Math.abs(r.inss20Patronal - inssCalculado20) > 0.01) {
+        inconsistencias.push(`INSS 20% incorreto: ${r.nomePrestador} - Calculado: ${formatCurrency(inssCalculado20)}, Informado: ${formatCurrency(r.inss20Patronal)}`);
+      }
+    });
+
+    const reportData: ReportData = {
+      periodo: `${reportFilters.dataInicio} a ${reportFilters.dataFim}`,
+      municipio: reportFilters.municipio === 'all' ? 'Todos os Municípios' : reportFilters.municipio,
+      totalRecolhimentos: filteredData.length,
+      valorBrutoTotal: filteredData.reduce((sum, r) => sum + r.valorBrutoNF, 0),
+      inss11Total: filteredData.reduce((sum, r) => sum + r.inss11Contribuinte, 0),
+      inss20Total: filteredData.reduce((sum, r) => sum + r.inss20Patronal, 0),
+      inssTotal: filteredData.reduce((sum, r) => sum + r.inss11Contribuinte + r.inss20Patronal, 0),
+      recolhimentosValidados: filteredData.filter(r => r.validado).length,
+      recolhimentosPendentes: filteredData.filter(r => !r.validado).length,
+      inconsistenciasEncontradas: inconsistencias
+    };
+
+    // Simular geração do relatório
+    if (reportFilters.formato === 'pdf') {
+      generatePDFReport(reportData, filteredData);
+    } else {
+      generateExcelReport(reportData, filteredData);
+    }
+  };
+
+  const generatePDFReport = (reportData: ReportData, data: INSSRecolhimento[]) => {
+    // Simulação de geração de PDF
+    console.log('Gerando relatório PDF...', reportData);
+    
+    const reportContent = `
+RELATÓRIO DE ANÁLISE DE RECOLHIMENTOS INSS
+==========================================
+
+PERÍODO ANALISADO: ${reportData.periodo}
+MUNICÍPIO: ${reportData.municipio}
+DATA DE GERAÇÃO: ${new Date().toLocaleDateString('pt-BR')}
+
+RESUMO EXECUTIVO:
+- Total de Recolhimentos: ${reportData.totalRecolhimentos}
+- Valor Bruto Total: ${formatCurrency(reportData.valorBrutoTotal)}
+- INSS 11% Total: ${formatCurrency(reportData.inss11Total)}
+- INSS 20% Total: ${formatCurrency(reportData.inss20Total)}
+- INSS Total Arrecadado: ${formatCurrency(reportData.inssTotal)}
+- Recolhimentos Validados: ${reportData.recolhimentosValidados}
+- Recolhimentos Pendentes: ${reportData.recolhimentosPendentes}
+
+INCONSISTÊNCIAS ENCONTRADAS (${reportData.inconsistenciasEncontradas.length}):
+${reportData.inconsistenciasEncontradas.map(inc => `- ${inc}`).join('\n')}
+
+DETALHAMENTO DOS RECOLHIMENTOS:
+${data.map(r => `
+CPF: ${r.cpfPrestador} | Nome: ${r.nomePrestador}
+Valor NF: ${formatCurrency(r.valorBrutoNF)} | INSS Total: ${formatCurrency(r.inss11Contribuinte + r.inss20Patronal)}
+Município: ${r.municipio} | Status: ${r.validado ? 'Validado' : 'Pendente'}
+`).join('\n')}
+    `;
+
+    // Criar blob e download
+    const blob = new Blob([reportContent], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio_inss_${reportData.periodo.replace(/\//g, '-')}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    alert('Relatório PDF gerado com sucesso!');
+  };
+
+  const generateExcelReport = (reportData: ReportData, data: INSSRecolhimento[]) => {
+    // Simulação de geração de Excel (CSV)
+    console.log('Gerando relatório Excel...', reportData);
+    
+    const csvHeader = 'CPF,Nome,Data Nascimento,Valor Bruto NF,Data NF,INSS 11%,INSS 20%,Município,Portaria SF,Finalidade,Status\n';
+    const csvData = data.map(r => 
+      `"${r.cpfPrestador}","${r.nomePrestador}","${r.dataNascimentoPrestador}","${r.valorBrutoNF}","${r.dataNotaFiscal}","${r.inss11Contribuinte}","${r.inss20Patronal}","${r.municipio}","${r.portariaSF}","${r.finalidadeAtividade}","${r.validado ? 'Validado' : 'Pendente'}"`
+    ).join('\n');
+    
+    const csvContent = csvHeader + csvData;
+    
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `relatorio_inss_${reportData.periodo.replace(/\//g, '-')}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    alert('Relatório Excel gerado com sucesso!');
+  };
+
+  const handleCSVUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file) {
+      if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+        alert('Por favor, selecione apenas arquivos CSV.');
+        return;
+      }
+      setCSVFile(file);
+      setUploadResult(null);
+    }
+  };
+
+  const processCSVFile = () => {
+    if (!csvFile) {
+      alert('Selecione um arquivo CSV primeiro.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const csvContent = e.target?.result as string;
+      const result = parseAndValidateCSV(csvContent);
+      setUploadResult(result);
+      
+      if (result.success && result.validRows > 0) {
+        // Simular backup automático
+        console.log('Backup automático realizado antes da atualização');
+        
+        // Simular atualização dos dados
+        console.log(`${result.validRows} registros processados com sucesso`);
+        
+        // Log de operações
+        const logEntry = {
+          timestamp: new Date().toISOString(),
+          operation: 'CSV_UPLOAD',
+          file: csvFile.name,
+          totalRows: result.totalRows,
+          validRows: result.validRows,
+          errors: result.errors.length,
+          warnings: result.warnings.length
+        };
+        console.log('Log de operação:', logEntry);
+      }
+    };
+    
+    reader.readAsText(csvFile);
+  };
+
+  const parseAndValidateCSV = (csvContent: string): CSVUploadResult => {
+    const lines = csvContent.split('\n').filter(line => line.trim());
+    const errors: string[] = [];
+    const warnings: string[] = [];
+    let validRows = 0;
+
+    if (lines.length === 0) {
+      errors.push('Arquivo CSV está vazio');
+      return { success: false, totalRows: 0, validRows: 0, errors, warnings };
+    }
+
+    // Validar cabeçalho
+    const expectedHeaders = [
+      'CPF', 'Nome', 'Data Nascimento', 'Valor Bruto NF', 'Data NF',
+      'INSS 11%', 'INSS 20%', 'Município', 'Portaria SF', 'Finalidade'
+    ];
+    
+    const headers = lines[0].split(',').map(h => h.trim().replace(/"/g, ''));
+    const missingHeaders = expectedHeaders.filter(h => !headers.includes(h));
+    
+    if (missingHeaders.length > 0) {
+      errors.push(`Colunas obrigatórias ausentes: ${missingHeaders.join(', ')}`);
+    }
+
+    // Validar dados
+    for (let i = 1; i < lines.length; i++) {
+      const row = lines[i].split(',').map(cell => cell.trim().replace(/"/g, ''));
+      const rowNumber = i + 1;
+      
+      if (row.length !== expectedHeaders.length) {
+        errors.push(`Linha ${rowNumber}: Número incorreto de colunas (esperado: ${expectedHeaders.length}, encontrado: ${row.length})`);
+        continue;
+      }
+
+      const [cpf, nome, dataNasc, valorBruto, dataNF, inss11, inss20, municipio, portaria, finalidade] = row;
+      
+      // Validar CPF
+      if (!validateCPF(cpf)) {
+        errors.push(`Linha ${rowNumber}: CPF inválido - ${cpf}`);
+      }
+      
+      // Validar nome
+      if (!nome || nome.length < 3) {
+        errors.push(`Linha ${rowNumber}: Nome inválido ou muito curto`);
+      }
+      
+      // Validar data de nascimento
+      if (!isValidDate(dataNasc)) {
+        errors.push(`Linha ${rowNumber}: Data de nascimento inválida - ${dataNasc}`);
+      }
+      
+      // Validar valor bruto
+      const valorBrutoNum = parseFloat(valorBruto.replace(',', '.'));
+      if (isNaN(valorBrutoNum) || valorBrutoNum <= 0) {
+        errors.push(`Linha ${rowNumber}: Valor bruto inválido - ${valorBruto}`);
+      }
+      
+      // Validar data NF
+      if (!isValidDate(dataNF)) {
+        errors.push(`Linha ${rowNumber}: Data da nota fiscal inválida - ${dataNF}`);
+      }
+      
+      // Validar INSS 11%
+      const inss11Num = parseFloat(inss11.replace(',', '.'));
+      if (isNaN(inss11Num) || inss11Num < 0) {
+        errors.push(`Linha ${rowNumber}: INSS 11% inválido - ${inss11}`);
+      }
+      
+      // Validar INSS 20%
+      const inss20Num = parseFloat(inss20.replace(',', '.'));
+      if (isNaN(inss20Num) || inss20Num < 0) {
+        errors.push(`Linha ${rowNumber}: INSS 20% inválido - ${inss20}`);
+      }
+      
+      // Validar município
+      if (!municipio || municipio.length < 2) {
+        errors.push(`Linha ${rowNumber}: Município inválido`);
+      }
+      
+      // Validar portaria
+      if (!portaria) {
+        warnings.push(`Linha ${rowNumber}: Portaria SF não informada`);
+      }
+      
+      // Validar finalidade
+      if (!finalidade || finalidade.length < 5) {
+        warnings.push(`Linha ${rowNumber}: Finalidade/atividade muito curta ou ausente`);
+      }
+      
+      // Verificar cálculo do INSS
+      if (!isNaN(valorBrutoNum) && !isNaN(inss11Num)) {
+        const inss11Calculado = Math.round(valorBrutoNum * 0.11 * 100) / 100;
+        if (Math.abs(inss11Num - inss11Calculado) > 0.01) {
+          warnings.push(`Linha ${rowNumber}: INSS 11% pode estar incorreto. Calculado: ${inss11Calculado.toFixed(2)}, Informado: ${inss11Num.toFixed(2)}`);
+        }
+      }
+      
+      if (!isNaN(valorBrutoNum) && !isNaN(inss20Num)) {
+        const inss20Calculado = Math.round(valorBrutoNum * 0.20 * 100) / 100;
+        if (Math.abs(inss20Num - inss20Calculado) > 0.01) {
+          warnings.push(`Linha ${rowNumber}: INSS 20% pode estar incorreto. Calculado: ${inss20Calculado.toFixed(2)}, Informado: ${inss20Num.toFixed(2)}`);
+        }
+      }
+      
+      if (errors.length === 0) {
+        validRows++;
+      }
+    }
+
+    const success = errors.length === 0 && validRows > 0;
+    return {
+      success,
+      totalRows: lines.length - 1, // Excluir cabeçalho
+      validRows,
+      errors,
+      warnings
+    };
+  };
+
+  const isValidDate = (dateString: string): boolean => {
+    const date = new Date(dateString.split('/').reverse().join('-'));
+    return date instanceof Date && !isNaN(date.getTime());
+  };
+
   const filteredRecolhimentos = recolhimentos.filter(recolhimento => {
     const matchesSearch = 
       recolhimento.cpfPrestador.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -347,6 +676,13 @@ const INSSAnalysis: React.FC = () => {
             >
               <BarChart3 size={16} className="mr-2" />
               Relatório
+            </button>
+            <button
+              onClick={() => setShowCSVModal(true)}
+              className="flex items-center px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
+            >
+              <Upload size={16} className="mr-2" />
+              Importar CSV
             </button>
             <button
               onClick={() => openModal()}
@@ -896,7 +1232,7 @@ const INSSAnalysis: React.FC = () => {
       {/* Modal de Relatório */}
       {showReportModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-2xl">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-3xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 Gerar Relatório de Arrecadação INSS
@@ -951,6 +1287,50 @@ const INSSAnalysis: React.FC = () => {
                   ))}
                 </select>
               </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Formato do Relatório
+                </label>
+                <select
+                  value={reportFilters.formato}
+                  onChange={(e) => setReportFilters({...reportFilters, formato: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="pdf">PDF</option>
+                  <option value="excel">Excel (CSV)</option>
+                </select>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="incluirInconsistencias"
+                  checked={reportFilters.incluirInconsistencias}
+                  onChange={(e) => setReportFilters({...reportFilters, incluirInconsistencias: e.target.checked})}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600 rounded"
+                />
+                <label htmlFor="incluirInconsistencias" className="ml-2 text-sm text-gray-700 dark:text-gray-300">
+                  Incluir análise de inconsistências no relatório
+                </label>
+              </div>
+
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <div className="flex items-start">
+                  <Info size={20} className="text-blue-600 mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200">Conteúdo do Relatório</h4>
+                    <ul className="text-sm text-blue-700 dark:text-blue-300 mt-2 space-y-1">
+                      <li>• Período analisado e filtros aplicados</li>
+                      <li>• Resumo executivo com totalizadores</li>
+                      <li>• Valores recolhidos por categoria (11% e 20%)</li>
+                      <li>• Status de validação dos recolhimentos</li>
+                      <li>• Inconsistências encontradas (se habilitado)</li>
+                      <li>• Detalhamento completo por prestador</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <div className="flex justify-end space-x-3 mt-6">
@@ -961,12 +1341,211 @@ const INSSAnalysis: React.FC = () => {
                 Cancelar
               </button>
               <button
-                onClick={generateReport}
+                onClick={generateDetailedReport}
                 className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center"
               >
-                <BarChart3 size={16} className="mr-2" />
+                {reportFilters.formato === 'pdf' ? <FileText size={16} className="mr-2" /> : <FileSpreadsheet size={16} className="mr-2" />}
                 Gerar Relatório
               </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de Upload CSV */}
+      {showCSVModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Importar Dados via CSV
+              </h3>
+              <button
+                onClick={() => {
+                  setShowCSVModal(false);
+                  setCSVFile(null);
+                  setUploadResult(null);
+                }}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="space-y-6">
+              {/* Instruções */}
+              <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                <div className="flex items-start">
+                  <AlertTriangle size={20} className="text-yellow-600 mr-3 mt-0.5" />
+                  <div>
+                    <h4 className="text-sm font-medium text-yellow-800 dark:text-yellow-200">Instruções Importantes</h4>
+                    <ul className="text-sm text-yellow-700 dark:text-yellow-300 mt-2 space-y-1">
+                      <li>• O arquivo deve estar no formato CSV (separado por vírgulas)</li>
+                      <li>• A primeira linha deve conter os cabeçalhos das colunas</li>
+                      <li>• Um backup automático será criado antes da importação</li>
+                      <li>• Dados inconsistentes serão reportados para correção</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Formato esperado */}
+              <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-4">
+                <h4 className="text-sm font-medium text-blue-800 dark:text-blue-200 mb-3">Formato Esperado do CSV</h4>
+                <div className="bg-white dark:bg-gray-700 rounded border p-3 text-xs font-mono overflow-x-auto">
+                  <div className="text-gray-600 dark:text-gray-400">
+                    CPF,Nome,Data Nascimento,Valor Bruto NF,Data NF,INSS 11%,INSS 20%,Município,Portaria SF,Finalidade<br/>
+                    123.456.789-00,João Silva,15/03/1980,5000.00,10/01/2024,550.00,1000.00,Belém,SF-2024-0001,Consultoria técnica
+                  </div>
+                </div>
+              </div>
+
+              {/* Upload de arquivo */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                  Selecionar Arquivo CSV
+                </label>
+                <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                  <input
+                    type="file"
+                    accept=".csv"
+                    onChange={handleCSVUpload}
+                    className="hidden"
+                    id="csv-upload"
+                  />
+                  <label
+                    htmlFor="csv-upload"
+                    className="cursor-pointer flex flex-col items-center"
+                  >
+                    <Upload size={48} className="text-gray-400 mb-4" />
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      Clique para selecionar arquivo CSV
+                    </span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                      Ou arraste e solte o arquivo aqui
+                    </span>
+                  </label>
+                </div>
+                
+                {csvFile && (
+                  <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
+                    <div className="flex items-center">
+                      <FileText size={16} className="text-blue-600 mr-2" />
+                      <span className="text-sm text-gray-900 dark:text-gray-100">{csvFile.name}</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400 ml-2">
+                        ({(csvFile.size / 1024).toFixed(1)} KB)
+                      </span>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Resultado do processamento */}
+              {uploadResult && (
+                <div className="space-y-4">
+                  <div className={`border rounded-lg p-4 ${
+                    uploadResult.success 
+                      ? 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800' 
+                      : 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800'
+                  }`}>
+                    <div className="flex items-start">
+                      {uploadResult.success ? (
+                        <CheckCircle size={20} className="text-green-600 mr-3 mt-0.5" />
+                      ) : (
+                        <AlertCircle size={20} className="text-red-600 mr-3 mt-0.5" />
+                      )}
+                      <div>
+                        <h4 className={`text-sm font-medium ${
+                          uploadResult.success 
+                            ? 'text-green-800 dark:text-green-200' 
+                            : 'text-red-800 dark:text-red-200'
+                        }`}>
+                          {uploadResult.success ? 'Processamento Concluído' : 'Erros Encontrados'}
+                        </h4>
+                        <div className={`text-sm mt-2 ${
+                          uploadResult.success 
+                            ? 'text-green-700 dark:text-green-300' 
+                            : 'text-red-700 dark:text-red-300'
+                        }`}>
+                          <p>Total de linhas: {uploadResult.totalRows}</p>
+                          <p>Linhas válidas: {uploadResult.validRows}</p>
+                          <p>Erros: {uploadResult.errors.length}</p>
+                          <p>Avisos: {uploadResult.warnings.length}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Erros */}
+                  {uploadResult.errors.length > 0 && (
+                    <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
+                      <h5 className="text-sm font-medium text-red-800 dark:text-red-200 mb-2">
+                        Erros Encontrados ({uploadResult.errors.length})
+                      </h5>
+                      <div className="max-h-32 overflow-y-auto">
+                        {uploadResult.errors.map((error, index) => (
+                          <p key={index} className="text-xs text-red-700 dark:text-red-300 mb-1">
+                            • {error}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Avisos */}
+                  {uploadResult.warnings.length > 0 && (
+                    <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4">
+                      <h5 className="text-sm font-medium text-yellow-800 dark:text-yellow-200 mb-2">
+                        Avisos ({uploadResult.warnings.length})
+                      </h5>
+                      <div className="max-h-32 overflow-y-auto">
+                        {uploadResult.warnings.map((warning, index) => (
+                          <p key={index} className="text-xs text-yellow-700 dark:text-yellow-300 mb-1">
+                            • {warning}
+                          </p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => {
+                  setShowCSVModal(false);
+                  setCSVFile(null);
+                  setUploadResult(null);
+                }}
+                className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                Fechar
+              </button>
+              {csvFile && !uploadResult && (
+                <button
+                  onClick={processCSVFile}
+                  className="px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors flex items-center"
+                >
+                  <Upload size={16} className="mr-2" />
+                  Processar Arquivo
+                </button>
+              )}
+              {uploadResult && uploadResult.success && (
+                <button
+                  onClick={() => {
+                    // Simular aplicação das alterações
+                    alert(`${uploadResult.validRows} registros importados com sucesso!`);
+                    setShowCSVModal(false);
+                    setCSVFile(null);
+                    setUploadResult(null);
+                  }}
+                  className="px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors flex items-center"
+                >
+                  <CheckCircle size={16} className="mr-2" />
+                  Aplicar Importação
+                </button>
+              )}
             </div>
           </div>
         </div>
