@@ -97,60 +97,7 @@ interface Notificacao {
   lida: boolean;
   prioridade: 'alta' | 'media' | 'baixa';
 }
-interface DocumentoAnexo {
-  id: string;
-  nome: string;
-  tipo: string;
-  tamanho: number;
-  dataUpload: string;
-}
 
-interface Mensagem {
-  id: string;
-  remetente: string;
-  destinatario: string;
-  conteudo: string;
-  dataEnvio: string;
-  lida: boolean;
-  tipo: 'sistema' | 'usuario';
-}
-
-interface Notificacao {
-  id: string;
-  tipo: 'aprovacao' | 'rejeicao' | 'pendencia' | 'prazo';
-  titulo: string;
-  mensagem: string;
-  data: string;
-  lida: boolean;
-  prioridade: 'alta' | 'media' | 'baixa';
-}
-interface DocumentoAnexo {
-  id: string;
-  nome: string;
-  tipo: string;
-  tamanho: number;
-  dataUpload: string;
-}
-
-interface Mensagem {
-  id: string;
-  remetente: string;
-  destinatario: string;
-  conteudo: string;
-  dataEnvio: string;
-  lida: boolean;
-  tipo: 'sistema' | 'usuario';
-}
-
-interface Notificacao {
-  id: string;
-  tipo: 'aprovacao' | 'rejeicao' | 'pendencia' | 'prazo';
-  titulo: string;
-  mensagem: string;
-  data: string;
-  lida: boolean;
-  prioridade: 'alta' | 'media' | 'baixa';
-}
 
 const SupplyFundsModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
