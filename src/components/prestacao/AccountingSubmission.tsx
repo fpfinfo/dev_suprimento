@@ -28,7 +28,9 @@ import {
   Calculator,
   Download,
   Save,
-  UserCheck
+  Search,
+  Users,
+  Calculator
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
@@ -136,45 +138,6 @@ const AccountingSubmission: React.FC = () => {
     inssEmployer: 0,
     files: []
   });
-
-  const [formData, setFormData] = useState({
-    // Dados do Suprido
-    nomeCompleto: '',
-    cpf: '',
-    telefone: '',
-    email: '',
-    departamento: '',
-    municipio: '',
-    
-    // Dados da Despesa
-    numeroPortaria: '',
-    numeroComprovante: '',
-    elementoDespesa: '',
-    dataDespesa: '',
-    valor: '',
-    descricaoFinalidade: '',
-    arquivos: [] as File[],
-    
-    // Dados do Prestador (apenas para Serviços PF)
-    prestadorNome: '',
-    prestadorCpf: '',
-    prestadorDataNascimento: '',
-    prestadorPis: '',
-    prestadorNomePai: '',
-    prestadorNomeMae: '',
-    prestadorDocumentos: [] as File[],
-    
-    // Dados Fiscais (apenas para Serviços PF)
-    valorBrutoNF: '',
-    dataEmissaoNF: '',
-    arquivosNF: [] as File[]
-  });
-  
-  const [tipoFormulario, setTipoFormulario] = useState<'geral' | 'servicos_pf'>('geral');
-  const [despesas, setDespesas] = useState<any[]>([]);
-  const [notasFiscais, setNotasFiscais] = useState<any[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [showSuccess, setShowSuccess] = useState(false);
 
   // Dados simulados para a listagem
   const [accountingRecords, setAccountingRecords] = useState<AccountingRecord[]>([
