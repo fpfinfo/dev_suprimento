@@ -1,387 +1,359 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Search, 
   Filter, 
+  Plus,
   Eye,
+  Edit,
+  Trash2,
   FileText,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertTriangle,
-  User,
-  Building,
+  Download,
+  Upload,
   Calendar,
   DollarSign,
-  MessageSquare,
-  Download,
-  Trash2,
+  User,
+  Building,
+  Clock,
+  CheckCircle,
+  AlertTriangle,
   X,
   Save,
-  Edit,
+  Send,
   Printer,
-  Shield,
-  MapPin,
-  Phone,
+  MessageSquare,
+  Bell,
+  AlertCircle,
+  Info,
+  CheckCircle2,
+  XCircle,
+  Zap,
+  Archive,
+  RefreshCw,
+  ExternalLink,
   Mail,
-  Hash
+  Phone,
+  MapPin,
+  Hash,
+  Calendar as CalendarIcon,
+  Target,
+  Flag,
+  Users,
+  FileCheck,
+  ClipboardList,
+  PenTool,
+  Settings
 } from 'lucide-react';
 
-interface Request {
+interface Solicitacao {
   id: string;
-  protocol: string;
-  requester: {
-    name: string;
+  numeroProtocolo: string;
+  solicitante: {
+    nome: string;
     cpf: string;
     email: string;
-    phone: string;
-    department: string;
-    municipality: string;
-    manager: string;
+    telefone: string;
+    lotacao: string;
+    cargo: string;
   };
-  totalAmount: number;
-  justification: string;
-  usageDeadline: string;
-  priority: 'baixa' | 'media' | 'alta' | 'urgente';
-  status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado';
-  elements: Array<{
-    code: string;
-    description: string;
-    amount: number;
-  }>;
-  createdAt: string;
-  analyzedAt?: string;
-  analyzedBy?: string;
-  technicalOpinion?: string;
-  observations?: string;
-  messages: Array<{
+  valorTotal: number;
+  justificativa: string;
+  dataLimite: string;
+  status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado' | 'cancelado';
+  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
+  dataSubmissao: string;
+  analisadoPor?: string;
+  dataAnalise?: string;
+  parecerTecnico?: string;
+  numeroPortaria?: string;
+  dataPortaria?: string;
+  observacoes?: string;
+  elementos: {
+    codigo: string;
+    descricao: string;
+    valor: number;
+    justificativa: string;
+  }[];
+  documentos: {
+    nome: string;
+    tipo: string;
+    tamanho: string;
+    dataUpload: string;
+  }[];
+  mensagens: {
     id: string;
-    sender: string;
-    message: string;
-    timestamp: string;
-    type: 'user' | 'admin';
-  }>;
+    remetente: string;
+    conteudo: string;
+    data: string;
+    lida: boolean;
+  }[];
+}
+
+interface Alert {
+  id: string;
+  tipo: 'prazo' | 'valor' | 'documento' | 'sistema';
+  prioridade: 'alta' | 'media' | 'baixa';
+  titulo: string;
+  descricao: string;
+  solicitacaoId?: string;
+  data: string;
+  lida: boolean;
+  acao?: string;
 }
 
 const RequestAnalysis: React.FC = () => {
+  const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
+  const [filteredSolicitacoes, setFilteredSolicitacoes] = useState<Solicitacao[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [selectedRequest, setSelectedRequest] = useState<Request | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [showPortariaModal, setShowPortariaModal] = useState(false);
-  const [isEditingPortaria, setIsEditingPortaria] = useState(false);
-  const [portariaData, setPortariaData] = useState({
-    solicitanteName: '',
-    department: '',
-    justification: '',
-    ptres: '',
-    dotacoes: '',
-    ordenadorDespesa: 'ANAILTON PAULO DE ALENCAR',
-    prazoAplicacaoInicio: '',
-    prazoAplicacaoFim: '',
-    prazoPrestacaoInicio: '',
-    prazoPrestacaoFim: ''
-  });
+  const [prioridadeFilter, setPrioridadeFilter] = useState('all');
+  const [selectedSolicitacao, setSelectedSolicitacao] = useState<Solicitacao | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [modalType, setModalType] = useState<'view' | 'edit' | 'create' | 'print' | 'portaria' | 'messages'>('view');
+  const [alerts, setAlerts] = useState<Alert[]>([]);
+  const [showAlerts, setShowAlerts] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [showMessageModal, setShowMessageModal] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  // Estado do formulário da portaria
-  const [portariaForm, setPortariaForm] = useState({
-    protocol: '',
-    requesterName: '',
-    cpf: '',
-    email: '',
-    phone: '',
-    department: '',
-    municipality: '',
-    manager: '',
-    priority: '',
-    startDate: '',
-    endDate: '',
-    justification: '',
-    elements: [] as Array<{code: string; description: string; amount: number}>,
-    totalAmount: 0,
-    ptres: '',
-    dotacoes: '',
-    generatedAt: ''
-  });
+  // Dados simulados
+  useEffect(() => {
+    const mockSolicitacoes: Solicitacao[] = [
+      {
+        id: '1',
+        numeroProtocolo: 'SF-2024-0001',
+        solicitante: {
+          nome: 'João Silva Santos',
+          cpf: '123.456.789-00',
+          email: 'joao.silva@tjpa.jus.br',
+          telefone: '(91) 99999-9999',
+          lotacao: 'Vara Criminal',
+          cargo: 'Analista Judiciário'
+        },
+        valorTotal: 15000.00,
+        justificativa: 'Aquisição de material de escritório e equipamentos para modernização da vara criminal.',
+        dataLimite: '2024-03-15',
+        status: 'pendente',
+        prioridade: 'alta',
+        dataSubmissao: '2024-01-15',
+        observacoes: 'Solicitação urgente devido ao alto volume de processos.',
+        elementos: [
+          {
+            codigo: '3.3.90.30',
+            descricao: 'Material de Consumo',
+            valor: 8000.00,
+            justificativa: 'Papel, toner, material de escritório'
+          },
+          {
+            codigo: '4.4.90.52',
+            descricao: 'Equipamentos',
+            valor: 7000.00,
+            justificativa: 'Computadores e impressoras'
+          }
+        ],
+        documentos: [
+          {
+            nome: 'orcamento_material.pdf',
+            tipo: 'Orçamento',
+            tamanho: '2.5 MB',
+            dataUpload: '2024-01-15'
+          },
+          {
+            nome: 'justificativa_tecnica.docx',
+            tipo: 'Justificativa',
+            tamanho: '1.2 MB',
+            dataUpload: '2024-01-15'
+          }
+        ],
+        mensagens: [
+          {
+            id: '1',
+            remetente: 'João Silva Santos',
+            conteudo: 'Solicito análise prioritária devido à urgência da demanda.',
+            data: '2024-01-15 10:30',
+            lida: true
+          }
+        ]
+      },
+      {
+        id: '2',
+        numeroProtocolo: 'SF-2024-0002',
+        solicitante: {
+          nome: 'Maria Oliveira Costa',
+          cpf: '987.654.321-00',
+          email: 'maria.costa@tjpa.jus.br',
+          telefone: '(91) 88888-8888',
+          lotacao: 'Vara Cível',
+          cargo: 'Técnico Judiciário'
+        },
+        valorTotal: 8500.00,
+        justificativa: 'Despesas com transporte e diárias para audiências em comarcas do interior.',
+        dataLimite: '2024-02-28',
+        status: 'em_analise',
+        prioridade: 'media',
+        dataSubmissao: '2024-01-10',
+        analisadoPor: 'Analista SOSFU',
+        dataAnalise: '2024-01-18',
+        parecerTecnico: 'Solicitação em conformidade com as normas. Aguardando aprovação final.',
+        elementos: [
+          {
+            codigo: '3.3.90.33',
+            descricao: 'Passagens e Despesas com Locomoção',
+            valor: 5000.00,
+            justificativa: 'Transporte para audiências'
+          },
+          {
+            codigo: '3.3.90.14',
+            descricao: 'Diárias - Civil',
+            valor: 3500.00,
+            justificativa: 'Hospedagem e alimentação'
+          }
+        ],
+        documentos: [
+          {
+            nome: 'cronograma_audiencias.pdf',
+            tipo: 'Cronograma',
+            tamanho: '1.8 MB',
+            dataUpload: '2024-01-10'
+          }
+        ],
+        mensagens: [
+          {
+            id: '2',
+            remetente: 'Analista SOSFU',
+            conteudo: 'Documentação analisada. Solicitação aprovada tecnicamente.',
+            data: '2024-01-18 14:20',
+            lida: false
+          }
+        ]
+      },
+      {
+        id: '3',
+        numeroProtocolo: 'SF-2024-0003',
+        solicitante: {
+          nome: 'Carlos Mendes Silva',
+          cpf: '456.789.123-00',
+          email: 'carlos.mendes@tjpa.jus.br',
+          telefone: '(91) 77777-7777',
+          lotacao: 'Administrativo',
+          cargo: 'Servidor'
+        },
+        valorTotal: 12000.00,
+        justificativa: 'Manutenção preventiva e corretiva de equipamentos de informática.',
+        dataLimite: '2024-04-10',
+        status: 'aprovado',
+        prioridade: 'baixa',
+        dataSubmissao: '2024-01-05',
+        analisadoPor: 'Analista SOSFU',
+        dataAnalise: '2024-01-12',
+        parecerTecnico: 'Solicitação aprovada. Valores dentro dos limites estabelecidos.',
+        numeroPortaria: 'PORT-2024-001',
+        dataPortaria: '2024-01-12',
+        elementos: [
+          {
+            codigo: '3.3.90.39',
+            descricao: 'Outros Serviços de Terceiros - PJ',
+            valor: 12000.00,
+            justificativa: 'Contrato de manutenção de equipamentos'
+          }
+        ],
+        documentos: [
+          {
+            nome: 'contrato_manutencao.pdf',
+            tipo: 'Contrato',
+            tamanho: '3.2 MB',
+            dataUpload: '2024-01-05'
+          }
+        ],
+        mensagens: []
+      }
+    ];
 
-  const [requests] = useState<Request[]>([
-    {
-      id: '1',
-      protocol: 'SF-2024-001',
-      requester: {
-        name: 'João Silva Santos',
-        cpf: '123.456.789-00',
-        email: 'joao.silva@tjpa.jus.br',
-        phone: '(91) 99999-9999',
-        department: 'Vara Criminal',
-        municipality: 'Belém',
-        manager: 'Dr. Carlos Mendes'
+    const mockAlerts: Alert[] = [
+      {
+        id: '1',
+        tipo: 'prazo',
+        prioridade: 'alta',
+        titulo: 'Prazo de Análise Vencendo',
+        descricao: 'Solicitação SF-2024-0001 vence em 2 dias',
+        solicitacaoId: '1',
+        data: '2024-01-20',
+        lida: false,
+        acao: 'Analisar Solicitação'
       },
-      totalAmount: 5000,
-      justification: 'Necessidade de aquisição de materiais de escritório para funcionamento adequado da vara criminal durante o mês de fevereiro.',
-      usageDeadline: '2024-02-27',
-      priority: 'alta',
-      status: 'pendente',
-      elements: [
-        { code: '3.3.90.30.96.01', description: 'Material de Consumo', amount: 3000 },
-        { code: '3.3.90.30.96.02', description: 'Combustível e Lubrificantes', amount: 2000 }
-      ],
-      createdAt: '2024-01-15T10:30:00',
-      messages: [
-        {
-          id: '1',
-          sender: 'João Silva Santos',
-          message: 'Solicitação criada e enviada para análise.',
-          timestamp: '2024-01-15T10:30:00',
-          type: 'user'
-        }
-      ]
-    },
-    {
-      id: '2',
-      protocol: 'SF-2024-002',
-      requester: {
-        name: 'Maria Oliveira Costa',
-        cpf: '987.654.321-00',
-        email: 'maria.costa@tjpa.jus.br',
-        phone: '(91) 88888-8888',
-        department: 'Vara Cível',
-        municipality: 'Santarém',
-        manager: 'Dra. Ana Paula Silva'
+      {
+        id: '2',
+        tipo: 'valor',
+        prioridade: 'media',
+        titulo: 'Valor Acima do Limite',
+        descricao: 'Solicitação SF-2024-0001 excede limite padrão',
+        solicitacaoId: '1',
+        data: '2024-01-19',
+        lida: false,
+        acao: 'Revisar Valores'
       },
-      totalAmount: 8500,
-      justification: 'Aquisição de equipamentos e materiais para melhoria do atendimento ao público.',
-      usageDeadline: '2024-03-15',
-      priority: 'media',
-      status: 'em_analise',
-      elements: [
-        { code: '3.3.90.33.96', description: 'Transporte e Locomoção', amount: 4500 },
-        { code: '3.3.90.39.96', description: 'Serviços de Terceiros - PJ', amount: 4000 }
-      ],
-      createdAt: '2024-01-14T14:20:00',
-      analyzedAt: '2024-01-16T09:15:00',
-      analyzedBy: 'Dr. Roberto Lima',
-      technicalOpinion: 'Solicitação em análise. Documentação completa.',
-      messages: [
-        {
-          id: '1',
-          sender: 'Maria Oliveira Costa',
-          message: 'Solicitação enviada para análise.',
-          timestamp: '2024-01-14T14:20:00',
-          type: 'user'
-        },
-        {
-          id: '2',
-          sender: 'Dr. Roberto Lima',
-          message: 'Solicitação recebida e em análise.',
-          timestamp: '2024-01-16T09:15:00',
-          type: 'admin'
-        }
-      ]
-    },
-    {
-      id: '3',
-      protocol: 'SF-2024-003',
-      requester: {
-        name: 'Carlos Mendes Silva',
-        cpf: '456.789.123-00',
-        email: 'carlos.mendes@tjpa.jus.br',
-        phone: '(91) 77777-7777',
-        department: 'Administrativo',
-        municipality: 'Marabá',
-        manager: 'Dr. Paulo Roberto'
-      },
-      totalAmount: 12000,
-      justification: 'Necessidade urgente de materiais para manutenção predial.',
-      usageDeadline: '2024-02-10',
-      priority: 'urgente',
-      status: 'aprovado',
-      elements: [
-        { code: '3.3.90.36.96', description: 'Serviços de Terceiros - PF', amount: 7000 },
-        { code: '3.3.90.30.96.01', description: 'Material de Consumo', amount: 5000 }
-      ],
-      createdAt: '2024-01-12T16:45:00',
-      analyzedAt: '2024-01-13T11:30:00',
-      analyzedBy: 'Dra. Fernanda Santos',
-      technicalOpinion: 'Solicitação aprovada. Documentação em conformidade e justificativa adequada.',
-      messages: [
-        {
-          id: '1',
-          sender: 'Carlos Mendes Silva',
-          message: 'Solicitação criada com prioridade urgente.',
-          timestamp: '2024-01-12T16:45:00',
-          type: 'user'
-        },
-        {
-          id: '2',
-          sender: 'Dra. Fernanda Santos',
-          message: 'Solicitação aprovada após análise técnica.',
-          timestamp: '2024-01-13T11:30:00',
-          type: 'admin'
-        }
-      ]
-    },
-    {
-      id: '4',
-      protocol: 'SF-2024-004',
-      requester: {
-        name: 'Ana Paula Silva',
-        cpf: '789.123.456-00',
-        email: 'ana.paula@tjpa.jus.br',
-        phone: '(91) 66666-6666',
-        department: 'Vara de Família',
-        municipality: 'Castanhal',
-        manager: 'Dr. José Santos'
-      },
-      totalAmount: 3500,
-      justification: 'Solicitação com documentação incompleta.',
-      usageDeadline: '2024-02-20',
-      priority: 'baixa',
-      status: 'rejeitado',
-      elements: [
-        { code: '3.3.90.30.96.02', description: 'Combustível e Lubrificantes', amount: 3500 }
-      ],
-      createdAt: '2024-01-10T13:15:00',
-      analyzedAt: '2024-01-11T15:20:00',
-      analyzedBy: 'Dr. Roberto Lima',
-      technicalOpinion: 'Solicitação rejeitada devido à documentação incompleta e justificativa insuficiente.',
-      observations: 'Necessário apresentar orçamentos detalhados.',
-      messages: [
-        {
-          id: '1',
-          sender: 'Ana Paula Silva',
-          message: 'Solicitação enviada para análise.',
-          timestamp: '2024-01-10T13:15:00',
-          type: 'user'
-        },
-        {
-          id: '2',
-          sender: 'Dr. Roberto Lima',
-          message: 'Solicitação rejeitada. Favor verificar documentação.',
-          timestamp: '2024-01-11T15:20:00',
-          type: 'admin'
-        }
-      ]
-    }
-  ]);
+      {
+        id: '3',
+        tipo: 'documento',
+        prioridade: 'baixa',
+        titulo: 'Documento Pendente',
+        descricao: 'Aguardando upload de comprovante adicional',
+        solicitacaoId: '2',
+        data: '2024-01-18',
+        lida: true
+      }
+    ];
 
-  const stats = {
-    total: requests.length,
-    pending: requests.filter(r => r.status === 'pendente').length,
-    inAnalysis: requests.filter(r => r.status === 'em_analise').length,
-    approved: requests.filter(r => r.status === 'aprovado').length,
-    rejected: requests.filter(r => r.status === 'rejeitado').length
-  };
+    setSolicitacoes(mockSolicitacoes);
+    setFilteredSolicitacoes(mockSolicitacoes);
+    setAlerts(mockAlerts);
+  }, []);
+
+  // Filtros
+  useEffect(() => {
+    let filtered = solicitacoes.filter(sol => {
+      const matchesSearch = 
+        sol.numeroProtocolo.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sol.solicitante.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        sol.solicitante.lotacao.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || sol.status === statusFilter;
+      const matchesPrioridade = prioridadeFilter === 'all' || sol.prioridade === prioridadeFilter;
+      
+      return matchesSearch && matchesStatus && matchesPrioridade;
+    });
+
+    setFilteredSolicitacoes(filtered);
+  }, [searchTerm, statusFilter, prioridadeFilter, solicitacoes]);
 
   const getStatusColor = (status: string) => {
     const colors = {
-      'pendente': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      'em_analise': 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300',
-      'aprovado': 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300',
-      'rejeitado': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+      pendente: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      em_analise: 'bg-blue-100 text-blue-800 border-blue-200',
+      aprovado: 'bg-green-100 text-green-800 border-green-200',
+      rejeitado: 'bg-red-100 text-red-800 border-red-200',
+      cancelado: 'bg-gray-100 text-gray-800 border-gray-200'
     };
-    return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[status as keyof typeof colors] || colors.pendente;
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      'pendente': 'Pendente',
-      'em_analise': 'Em Análise',
-      'aprovado': 'Aprovado',
-      'rejeitado': 'Rejeitado'
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
-  const getPriorityColor = (priority: string) => {
+  const getPrioridadeColor = (prioridade: string) => {
     const colors = {
-      'baixa': 'bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300',
-      'media': 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300',
-      'alta': 'bg-orange-100 text-orange-800 dark:bg-orange-900 dark:text-orange-300',
-      'urgente': 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+      baixa: 'bg-gray-100 text-gray-800',
+      media: 'bg-yellow-100 text-yellow-800',
+      alta: 'bg-orange-100 text-orange-800',
+      urgente: 'bg-red-100 text-red-800'
     };
-    return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800';
+    return colors[prioridade as keyof typeof colors] || colors.media;
   };
 
-  const getPriorityLabel = (priority: string) => {
-    const labels = {
-      'baixa': 'Baixa',
-      'media': 'Média',
-      'alta': 'Alta',
-      'urgente': 'Urgente'
+  const getAlertIcon = (tipo: string) => {
+    const icons = {
+      prazo: <Clock size={16} />,
+      valor: <DollarSign size={16} />,
+      documento: <FileText size={16} />,
+      sistema: <Settings size={16} />
     };
-    return labels[priority as keyof typeof labels] || priority;
-  };
-
-  const filteredRequests = requests.filter(request => {
-    const matchesSearch = 
-      request.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.department.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
-    
-    return matchesSearch && matchesStatus && matchesPriority;
-  });
-
-  const openDetailsModal = (request: Request) => {
-    setSelectedRequest(request);
-    setShowDetailsModal(true);
-  };
-
-  const openPortariaModal = (request: Request) => {
-    setSelectedRequest(request);
-    setPortariaData({
-      solicitanteName: request.requester.name,
-      department: request.requester.department,
-      justification: request.justification,
-      ptres: '',
-      dotacoes: '',
-      ordenadorDespesa: 'ANAILTON PAULO DE ALENCAR',
-      prazoAplicacaoInicio: request.startDate,
-      prazoAplicacaoFim: request.endDate,
-      prazoPrestacaoInicio: '',
-      prazoPrestacaoFim: ''
-    });
-    setPortariaForm({
-      protocol: request.protocol,
-      requesterName: request.requester.name,
-      cpf: request.requester.cpf,
-      email: request.requester.email,
-      phone: request.requester.phone,
-      department: request.requester.department,
-      municipality: request.requester.municipality,
-      manager: request.requester.manager,
-      priority: getPriorityLabel(request.priority),
-      startDate: '31/01/2024',
-      endDate: new Date(request.usageDeadline).toLocaleDateString('pt-BR'),
-      justification: request.justification,
-      elements: request.elements,
-      totalAmount: request.totalAmount,
-      ptres: '',
-      dotacoes: '',
-      generatedAt: new Date().toLocaleString('pt-BR')
-    });
-    setIsEditingPortaria(false);
-    setShowPortariaModal(true);
-  };
-
-  const handlePortariaFormChange = (field: string, value: any) => {
-    setPortariaForm(prev => ({
-      ...prev,
-      [field]: value
-    }));
-  };
-
-  const savePortaria = () => {
-    console.log('Salvando portaria:', portariaForm);
-    alert('Portaria salva com sucesso!');
-    setIsEditingPortaria(false);
-  };
-
-  const printPortaria = () => {
-    window.print();
+    return icons[tipo as keyof typeof icons] || <Info size={16} />;
   };
 
   const formatCurrency = (value: number) => {
@@ -391,83 +363,363 @@ const RequestAnalysis: React.FC = () => {
     }).format(value);
   };
 
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString('pt-BR');
+  };
+
+  const openModal = (type: typeof modalType, solicitacao?: Solicitacao) => {
+    setModalType(type);
+    setSelectedSolicitacao(solicitacao || null);
+    setShowModal(true);
+  };
+
+  const closeModal = () => {
+    setShowModal(false);
+    setSelectedSolicitacao(null);
+    setModalType('view');
+  };
+
+  const handleStatusChange = (solicitacaoId: string, newStatus: string) => {
+    setSolicitacoes(prev => prev.map(sol => 
+      sol.id === solicitacaoId 
+        ? { ...sol, status: newStatus as any, dataAnalise: new Date().toISOString() }
+        : sol
+    ));
+  };
+
+  const sendMessage = () => {
+    if (!newMessage.trim() || !selectedSolicitacao) return;
+
+    const message = {
+      id: Date.now().toString(),
+      remetente: 'Analista SOSFU',
+      conteudo: newMessage,
+      data: new Date().toLocaleString('pt-BR'),
+      lida: false
+    };
+
+    setSolicitacoes(prev => prev.map(sol => 
+      sol.id === selectedSolicitacao.id 
+        ? { ...sol, mensagens: [...sol.mensagens, message] }
+        : sol
+    ));
+
+    setNewMessage('');
+    setShowMessageModal(false);
+  };
+
+  const markAlertAsRead = (alertId: string) => {
+    setAlerts(prev => prev.map(alert => 
+      alert.id === alertId ? { ...alert, lida: true } : alert
+    ));
+  };
+
+  const printDetails = (solicitacao: Solicitacao) => {
+    const printContent = `
+      <div style="font-family: Arial, sans-serif; padding: 20px;">
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h1>TRIBUNAL DE JUSTIÇA DO PARÁ</h1>
+          <h2>DETALHES DA SOLICITAÇÃO DE SUPRIMENTO</h2>
+        </div>
+        
+        <div style="margin-bottom: 20px;">
+          <h3>Dados da Solicitação</h3>
+          <p><strong>Protocolo:</strong> ${solicitacao.numeroProtocolo}</p>
+          <p><strong>Data de Submissão:</strong> ${formatDate(solicitacao.dataSubmissao)}</p>
+          <p><strong>Status:</strong> ${solicitacao.status.toUpperCase()}</p>
+          <p><strong>Prioridade:</strong> ${solicitacao.prioridade.toUpperCase()}</p>
+          <p><strong>Valor Total:</strong> ${formatCurrency(solicitacao.valorTotal)}</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3>Dados do Solicitante</h3>
+          <p><strong>Nome:</strong> ${solicitacao.solicitante.nome}</p>
+          <p><strong>CPF:</strong> ${solicitacao.solicitante.cpf}</p>
+          <p><strong>Email:</strong> ${solicitacao.solicitante.email}</p>
+          <p><strong>Lotação:</strong> ${solicitacao.solicitante.lotacao}</p>
+          <p><strong>Cargo:</strong> ${solicitacao.solicitante.cargo}</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3>Justificativa</h3>
+          <p>${solicitacao.justificativa}</p>
+        </div>
+
+        <div style="margin-bottom: 20px;">
+          <h3>Elementos de Despesa</h3>
+          ${solicitacao.elementos.map(el => `
+            <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #ddd;">
+              <p><strong>Código:</strong> ${el.codigo}</p>
+              <p><strong>Descrição:</strong> ${el.descricao}</p>
+              <p><strong>Valor:</strong> ${formatCurrency(el.valor)}</p>
+              <p><strong>Justificativa:</strong> ${el.justificativa}</p>
+            </div>
+          `).join('')}
+        </div>
+
+        ${solicitacao.parecerTecnico ? `
+          <div style="margin-bottom: 20px;">
+            <h3>Parecer Técnico</h3>
+            <p>${solicitacao.parecerTecnico}</p>
+            <p><strong>Analisado por:</strong> ${solicitacao.analisadoPor}</p>
+            <p><strong>Data da Análise:</strong> ${solicitacao.dataAnalise ? formatDate(solicitacao.dataAnalise) : ''}</p>
+          </div>
+        ` : ''}
+
+        <div style="margin-top: 40px; text-align: center;">
+          <p>Documento gerado em ${new Date().toLocaleString('pt-BR')}</p>
+        </div>
+      </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const printPortaria = (solicitacao: Solicitacao) => {
+    if (!solicitacao.numeroPortaria) {
+      alert('Esta solicitação ainda não possui portaria gerada.');
+      return;
+    }
+
+    const portariaContent = `
+      <div style="font-family: Arial, sans-serif; padding: 40px; line-height: 1.6;">
+        <div style="text-align: center; margin-bottom: 40px;">
+          <h1>TRIBUNAL DE JUSTIÇA DO ESTADO DO PARÁ</h1>
+          <h2>PORTARIA Nº ${solicitacao.numeroPortaria}</h2>
+          <p>Data: ${solicitacao.dataPortaria ? formatDate(solicitacao.dataPortaria) : ''}</p>
+        </div>
+        
+        <div style="text-align: justify; margin-bottom: 30px;">
+          <p><strong>O PRESIDENTE DO TRIBUNAL DE JUSTIÇA DO ESTADO DO PARÁ</strong>, no uso de suas atribuições legais,</p>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <p><strong>CONSIDERANDO</strong> a solicitação de suprimento de fundos protocolada sob nº ${solicitacao.numeroProtocolo};</p>
+          <p><strong>CONSIDERANDO</strong> a análise técnica favorável do SOSFU;</p>
+          <p><strong>CONSIDERANDO</strong> a necessidade de atendimento às demandas administrativas;</p>
+        </div>
+
+        <div style="text-align: center; margin-bottom: 30px;">
+          <h3>R E S O L V E:</h3>
+        </div>
+
+        <div style="margin-bottom: 30px;">
+          <p><strong>Art. 1º</strong> - Autorizar o suprimento de fundos no valor de <strong>${formatCurrency(solicitacao.valorTotal)}</strong> ao servidor <strong>${solicitacao.solicitante.nome}</strong>, CPF nº ${solicitacao.solicitante.cpf}, lotado na ${solicitacao.solicitante.lotacao}.</p>
+          
+          <p><strong>Art. 2º</strong> - O suprimento destina-se a: ${solicitacao.justificativa}</p>
+          
+          <p><strong>Art. 3º</strong> - O prazo para prestação de contas é de 30 (trinta) dias, contados a partir do recebimento dos recursos.</p>
+          
+          <p><strong>Art. 4º</strong> - Esta portaria entra em vigor na data de sua publicação.</p>
+        </div>
+
+        <div style="margin-top: 60px; text-align: center;">
+          <p>_________________________________</p>
+          <p><strong>Presidente do TJPA</strong></p>
+        </div>
+
+        <div style="margin-top: 40px; text-align: center; font-size: 12px;">
+          <p>Documento gerado automaticamente em ${new Date().toLocaleString('pt-BR')}</p>
+        </div>
+      </div>
+    `;
+
+    const printWindow = window.open('', '_blank');
+    if (printWindow) {
+      printWindow.document.write(portariaContent);
+      printWindow.document.close();
+      printWindow.print();
+    }
+  };
+
+  const stats = {
+    total: solicitacoes.length,
+    pendentes: solicitacoes.filter(s => s.status === 'pendente').length,
+    emAnalise: solicitacoes.filter(s => s.status === 'em_analise').length,
+    aprovadas: solicitacoes.filter(s => s.status === 'aprovado').length,
+    valorTotal: solicitacoes.reduce((acc, s) => acc + s.valorTotal, 0),
+    alertasNaoLidas: alerts.filter(a => !a.lida).length
+  };
+
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-        <div className="flex items-center space-x-3">
-          <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-            <Shield size={24} className="text-purple-600" />
+      {/* Header com Estatísticas */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center space-x-3">
+            <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+              <ClipboardList size={24} className="text-blue-600" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Análise de Solicitações</h1>
+              <p className="text-gray-600 dark:text-gray-400">Gestão completa de solicitações de suprimento de fundos</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">SOSFU - Análise de Solicitações</h1>
-            <p className="text-gray-600 dark:text-gray-400">Supervisão e Análise Técnica de Solicitações de Suprimento</p>
+
+          <div className="flex items-center space-x-3">
+            {/* Botão de Alertas */}
+            <button
+              onClick={() => setShowAlerts(!showAlerts)}
+              className="relative flex items-center px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
+            >
+              <Bell size={16} className="mr-2" />
+              Alertas
+              {stats.alertasNaoLidas > 0 && (
+                <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                  {stats.alertasNaoLidas}
+                </span>
+              )}
+            </button>
+
+            <button
+              onClick={() => openModal('create')}
+              className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            >
+              <Plus size={16} className="mr-2" />
+              Nova Solicitação
+            </button>
+          </div>
+        </div>
+
+        {/* Cards de Estatísticas */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-gray-600 dark:text-gray-400">Total</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">{stats.total}</p>
+              </div>
+              <FileText size={24} className="text-gray-500" />
+            </div>
+          </div>
+
+          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Pendentes</p>
+                <p className="text-2xl font-bold text-yellow-700 dark:text-yellow-300">{stats.pendentes}</p>
+              </div>
+              <Clock size={24} className="text-yellow-500" />
+            </div>
+          </div>
+
+          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-blue-600 dark:text-blue-400">Em Análise</p>
+                <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{stats.emAnalise}</p>
+              </div>
+              <Target size={24} className="text-blue-500" />
+            </div>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-green-600 dark:text-green-400">Aprovadas</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{stats.aprovadas}</p>
+              </div>
+              <CheckCircle size={24} className="text-green-500" />
+            </div>
+          </div>
+
+          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-purple-600 dark:text-purple-400">Valor Total</p>
+                <p className="text-lg font-bold text-purple-700 dark:text-purple-300">{formatCurrency(stats.valorTotal)}</p>
+              </div>
+              <DollarSign size={24} className="text-purple-500" />
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
-            </div>
-            <FileText size={24} className="text-blue-600" />
+      {/* Painel de Alertas */}
+      {showAlerts && (
+        <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+              <Bell size={20} className="mr-2 text-orange-500" />
+              Central de Alertas
+            </h3>
+            <button
+              onClick={() => setShowAlerts(false)}
+              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            {alerts.map((alert) => (
+              <div
+                key={alert.id}
+                className={`p-4 rounded-lg border-l-4 ${
+                  alert.prioridade === 'alta' ? 'border-red-500 bg-red-50 dark:bg-red-900/20' :
+                  alert.prioridade === 'media' ? 'border-yellow-500 bg-yellow-50 dark:bg-yellow-900/20' :
+                  'border-blue-500 bg-blue-50 dark:bg-blue-900/20'
+                } ${!alert.lida ? 'ring-2 ring-blue-200 dark:ring-blue-800' : ''}`}
+              >
+                <div className="flex items-start justify-between">
+                  <div className="flex items-start space-x-3">
+                    <div className={`p-2 rounded-full ${
+                      alert.prioridade === 'alta' ? 'bg-red-100 dark:bg-red-900' :
+                      alert.prioridade === 'media' ? 'bg-yellow-100 dark:bg-yellow-900' :
+                      'bg-blue-100 dark:bg-blue-900'
+                    }`}>
+                      {getAlertIcon(alert.tipo)}
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-medium text-gray-900 dark:text-gray-100">{alert.titulo}</h4>
+                      <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{alert.descricao}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-2">{formatDate(alert.data)}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    {alert.acao && (
+                      <button
+                        onClick={() => {
+                          if (alert.solicitacaoId) {
+                            const solicitacao = solicitacoes.find(s => s.id === alert.solicitacaoId);
+                            if (solicitacao) openModal('view', solicitacao);
+                          }
+                        }}
+                        className="text-xs px-3 py-1 bg-blue-600 text-white rounded-full hover:bg-blue-700 transition-colors"
+                      >
+                        {alert.acao}
+                      </button>
+                    )}
+                    {!alert.lida && (
+                      <button
+                        onClick={() => markAlertAsRead(alert.id)}
+                        className="text-xs px-3 py-1 bg-gray-600 text-white rounded-full hover:bg-gray-700 transition-colors"
+                      >
+                        Marcar como Lida
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
         </div>
+      )}
 
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Pendentes</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.pending}</p>
-            </div>
-            <Clock size={24} className="text-orange-600" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Em Análise</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.inAnalysis}</p>
-            </div>
-            <AlertTriangle size={24} className="text-blue-600" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Aprovadas</p>
-              <p className="text-2xl font-bold text-green-600">{stats.approved}</p>
-            </div>
-            <CheckCircle size={24} className="text-green-600" />
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Rejeitadas</p>
-              <p className="text-2xl font-bold text-red-600">{stats.rejected}</p>
-            </div>
-            <XCircle size={24} className="text-red-600" />
-          </div>
-        </div>
-      </div>
-
-      {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+      {/* Filtros */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
             <input
               type="text"
-              placeholder="Buscar por protocolo, solicitante..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              placeholder="Buscar por protocolo, nome ou lotação..."
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -475,7 +727,7 @@ const RequestAnalysis: React.FC = () => {
           
           <div>
             <select
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -484,14 +736,15 @@ const RequestAnalysis: React.FC = () => {
               <option value="em_analise">Em Análise</option>
               <option value="aprovado">Aprovado</option>
               <option value="rejeitado">Rejeitado</option>
+              <option value="cancelado">Cancelado</option>
             </select>
           </div>
 
           <div>
             <select
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-              value={priorityFilter}
-              onChange={(e) => setPriorityFilter(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              value={prioridadeFilter}
+              onChange={(e) => setPrioridadeFilter(e.target.value)}
             >
               <option value="all">Todas as Prioridades</option>
               <option value="baixa">Baixa</option>
@@ -500,11 +753,25 @@ const RequestAnalysis: React.FC = () => {
               <option value="urgente">Urgente</option>
             </select>
           </div>
+
+          <div className="flex space-x-2">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setPrioridadeFilter('all');
+              }}
+              className="flex-1 px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Limpar
+            </button>
+          </div>
         </div>
       </div>
 
-      {/* Requests Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+      {/* Tabela de Solicitações */}
+      <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -519,13 +786,13 @@ const RequestAnalysis: React.FC = () => {
                   Valor
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Prioridade
-                </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Status
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                  Data
+                  Prioridade
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Data Limite
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Ações
@@ -533,57 +800,109 @@ const RequestAnalysis: React.FC = () => {
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-              {filteredRequests.map((request) => (
-                <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+              {filteredSolicitacoes.map((solicitacao) => (
+                <tr key={solicitacao.id} className="hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.protocol}</div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.requester.name}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{request.requester.department}</div>
+                    <div className="flex items-center">
+                      <Hash size={16} className="text-gray-400 mr-2" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {solicitacao.numeroProtocolo}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {formatDate(solicitacao.dataSubmissao)}
+                        </div>
+                      </div>
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm font-medium text-green-600">{formatCurrency(request.totalAmount)}</div>
+                    <div className="flex items-center">
+                      <User size={16} className="text-gray-400 mr-2" />
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                          {solicitacao.solicitante.nome}
+                        </div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {solicitacao.solicitante.lotacao}
+                        </div>
+                      </div>
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(request.priority)}`}>
-                      {getPriorityLabel(request.priority)}
-                    </span>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {formatCurrency(solicitacao.valorTotal)}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                      {getStatusLabel(request.status)}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                    {new Date(request.createdAt).toLocaleDateString('pt-BR')}
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                    <button
-                      onClick={() => openDetailsModal(request)}
-                      className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300"
-                      title="Ver detalhes"
+                    <select
+                      value={solicitacao.status}
+                      onChange={(e) => handleStatusChange(solicitacao.id, e.target.value)}
+                      className={`text-xs font-semibold px-3 py-1 rounded-full border cursor-pointer ${getStatusColor(solicitacao.status)}`}
                     >
-                      <Eye size={16} />
-                    </button>
-                    {request.status === 'pendente' && (
+                      <option value="pendente">Pendente</option>
+                      <option value="em_analise">Em Análise</option>
+                      <option value="aprovado">Aprovado</option>
+                      <option value="rejeitado">Rejeitado</option>
+                      <option value="cancelado">Cancelado</option>
+                    </select>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPrioridadeColor(solicitacao.prioridade)}`}>
+                      {solicitacao.prioridade.charAt(0).toUpperCase() + solicitacao.prioridade.slice(1)}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center text-sm text-gray-900 dark:text-gray-100">
+                      <CalendarIcon size={16} className="text-gray-400 mr-2" />
+                      {formatDate(solicitacao.dataLimite)}
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex items-center space-x-2">
                       <button
-                        onClick={() => openPortariaModal(request)}
-                        className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300"
-                        title="Gerar Portaria"
+                        onClick={() => openModal('view', solicitacao)}
+                        className="text-blue-600 hover:text-blue-900 dark:text-blue-400 dark:hover:text-blue-300 p-1 rounded"
+                        title="Visualizar"
                       >
-                        <FileText size={16} />
+                        <Eye size={16} />
                       </button>
-                    )}
-                    <button
-                      onClick={() => alert('Funcionalidade de exclusão')}
-                      className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-300"
-                      title="Excluir"
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                      <button
+                        onClick={() => openModal('edit', solicitacao)}
+                        className="text-green-600 hover:text-green-900 dark:text-green-400 dark:hover:text-green-300 p-1 rounded"
+                        title="Editar"
+                      >
+                        <Edit size={16} />
+                      </button>
+                      <button
+                        onClick={() => printDetails(solicitacao)}
+                        className="text-purple-600 hover:text-purple-900 dark:text-purple-400 dark:hover:text-purple-300 p-1 rounded"
+                        title="Imprimir Detalhes"
+                      >
+                        <Printer size={16} />
+                      </button>
+                      {solicitacao.status === 'aprovado' && (
+                        <button
+                          onClick={() => printPortaria(solicitacao)}
+                          className="text-orange-600 hover:text-orange-900 dark:text-orange-400 dark:hover:text-orange-300 p-1 rounded"
+                          title="Imprimir Portaria"
+                        >
+                          <FileCheck size={16} />
+                        </button>
+                      )}
+                      <button
+                        onClick={() => {
+                          setSelectedSolicitacao(solicitacao);
+                          setShowMessageModal(true);
+                        }}
+                        className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-300 p-1 rounded relative"
+                        title="Mensagens"
+                      >
+                        <MessageSquare size={16} />
+                        {solicitacao.mensagens.some(m => !m.lida) && (
+                          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-3 h-3"></span>
+                        )}
+                      </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -591,687 +910,286 @@ const RequestAnalysis: React.FC = () => {
           </table>
         </div>
 
-        {filteredRequests.length === 0 && (
+        {filteredSolicitacoes.length === 0 && (
           <div className="text-center py-12">
             <FileText size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Nenhuma solicitação encontrada</h3>
             <p className="text-gray-500 dark:text-gray-400">
-              Tente ajustar os filtros de busca.
+              {searchTerm || statusFilter !== 'all' || prioridadeFilter !== 'all'
+                ? 'Tente ajustar os filtros de busca.' 
+                : 'Não há solicitações cadastradas no momento.'}
             </p>
           </div>
         )}
       </div>
 
-      {/* Details Modal */}
-      {showDetailsModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+      {/* Modal de Detalhes/Edição */}
+      {showModal && selectedSolicitacao && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                Detalhes da Solicitação - {selectedRequest.protocol}
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                {modalType === 'view' ? 'Detalhes da Solicitação' : 
+                 modalType === 'edit' ? 'Editar Solicitação' : 'Nova Solicitação'}
               </h3>
               <button
-                onClick={() => setShowDetailsModal(false)}
-                className="text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300"
+                onClick={closeModal}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
               >
                 <X size={24} />
               </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {/* Informações Básicas */}
+              {/* Dados da Solicitação */}
               <div className="space-y-4">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Dados do Solicitante</h4>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                    <FileText size={16} className="mr-2" />
+                    Dados da Solicitação
+                  </h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <User size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">Nome:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.name}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Protocolo:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.numeroProtocolo}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Hash size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">CPF:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.cpf}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Data de Submissão:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{formatDate(selectedSolicitacao.dataSubmissao)}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Mail size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">Email:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.email}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Data Limite:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{formatDate(selectedSolicitacao.dataLimite)}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Phone size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">Telefone:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.phone}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Valor Total:</span>
+                      <span className="font-medium text-green-600">{formatCurrency(selectedSolicitacao.valorTotal)}</span>
                     </div>
-                    <div className="flex items-center">
-                      <Building size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">Departamento:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.department}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedSolicitacao.status)}`}>
+                        {selectedSolicitacao.status.replace('_', ' ').toUpperCase()}
+                      </span>
                     </div>
-                    <div className="flex items-center">
-                      <MapPin size={16} className="text-gray-500 mr-2" />
-                      <span className="text-gray-600 dark:text-gray-400">Município:</span>
-                      <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.requester.municipality}</span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Prioridade:</span>
+                      <span className={`px-2 py-1 text-xs font-semibold rounded-full ${getPrioridadeColor(selectedSolicitacao.prioridade)}`}>
+                        {selectedSolicitacao.prioridade.toUpperCase()}
+                      </span>
                     </div>
                   </div>
                 </div>
 
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Status e Análise</h4>
+                {/* Dados do Solicitante */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                    <User size={16} className="mr-2" />
+                    Dados do Solicitante
+                  </h4>
                   <div className="space-y-2 text-sm">
-                    <div className="flex items-center">
-                      <span className="text-gray-600 dark:text-gray-400">Status:</span>
-                      <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedRequest.status)}`}>
-                        {getStatusLabel(selectedRequest.status)}
-                      </span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Nome:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.nome}</span>
                     </div>
-                    <div className="flex items-center">
-                      <span className="text-gray-600 dark:text-gray-400">Prioridade:</span>
-                      <span className={`ml-2 px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedRequest.priority)}`}>
-                        {getPriorityLabel(selectedRequest.priority)}
-                      </span>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">CPF:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.cpf}</span>
                     </div>
-                    {selectedRequest.analyzedBy && (
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">Analisado por:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-100">{selectedRequest.analyzedBy}</span>
-                      </div>
-                    )}
-                    {selectedRequest.analyzedAt && (
-                      <div>
-                        <span className="text-gray-600 dark:text-gray-400">Data da análise:</span>
-                        <span className="ml-2 text-gray-900 dark:text-gray-100">
-                          {new Date(selectedRequest.analyzedAt).toLocaleString('pt-BR')}
-                        </span>
-                      </div>
-                    )}
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Email:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.email}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Telefone:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.telefone}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Lotação:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.lotacao}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-gray-600 dark:text-gray-400">Cargo:</span>
+                      <span className="font-medium text-gray-900 dark:text-gray-100">{selectedSolicitacao.solicitante.cargo}</span>
+                    </div>
                   </div>
                 </div>
               </div>
 
-              {/* Elementos e Justificativa */}
+              {/* Justificativa e Elementos */}
               <div className="space-y-4">
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Elementos de Despesa</h4>
-                  <div className="space-y-2">
-                    {selectedRequest.elements.map((element, index) => (
-                      <div key={index} className="flex justify-between items-center p-2 bg-white dark:bg-gray-600 rounded">
-                        <div>
-                          <div className="text-xs text-gray-500 dark:text-gray-400">{element.code}</div>
-                          <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{element.description}</div>
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3">Justificativa</h4>
+                  <p className="text-sm text-gray-600 dark:text-gray-400">{selectedSolicitacao.justificativa}</p>
+                </div>
+
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                    <DollarSign size={16} className="mr-2" />
+                    Elementos de Despesa
+                  </h4>
+                  <div className="space-y-3">
+                    {selectedSolicitacao.elementos.map((elemento, index) => (
+                      <div key={index} className="border border-gray-200 dark:border-gray-600 rounded-lg p-3">
+                        <div className="flex justify-between items-start mb-2">
+                          <div>
+                            <p className="font-medium text-gray-900 dark:text-gray-100 text-sm">{elemento.codigo}</p>
+                            <p className="text-xs text-gray-600 dark:text-gray-400">{elemento.descricao}</p>
+                          </div>
+                          <span className="font-medium text-green-600">{formatCurrency(elemento.valor)}</span>
                         </div>
-                        <div className="text-sm font-bold text-green-600">{formatCurrency(element.amount)}</div>
+                        <p className="text-xs text-gray-500 dark:text-gray-500">{elemento.justificativa}</p>
                       </div>
                     ))}
-                    <div className="border-t pt-2 mt-2">
-                      <div className="flex justify-between items-center font-bold">
-                        <span className="text-gray-900 dark:text-gray-100">Total:</span>
-                        <span className="text-green-600">{formatCurrency(selectedRequest.totalAmount)}</span>
+                  </div>
+                </div>
+
+                {/* Documentos */}
+                <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                  <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                    <FileText size={16} className="mr-2" />
+                    Documentos Anexados
+                  </h4>
+                  <div className="space-y-2">
+                    {selectedSolicitacao.documentos.map((doc, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 border border-gray-200 dark:border-gray-600 rounded">
+                        <div className="flex items-center">
+                          <FileText size={16} className="text-gray-400 mr-2" />
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{doc.nome}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-500">{doc.tipo} • {doc.tamanho}</p>
+                          </div>
+                        </div>
+                        <button className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300">
+                          <Download size={16} />
+                        </button>
                       </div>
-                    </div>
+                    ))}
                   </div>
                 </div>
-
-                <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                  <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Justificativa</h4>
-                  <p className="text-sm text-gray-700 dark:text-gray-300">{selectedRequest.justification}</p>
-                </div>
-
-                {selectedRequest.technicalOpinion && (
-                  <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-                    <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Parecer Técnico</h4>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{selectedRequest.technicalOpinion}</p>
-                  </div>
-                )}
               </div>
             </div>
 
-            {/* Messages */}
-            <div className="mt-6">
-              <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-3">Histórico de Mensagens</h4>
-              <div className="space-y-3 max-h-40 overflow-y-auto">
-                {selectedRequest.messages.map((message) => (
-                  <div key={message.id} className={`p-3 rounded-lg ${
-                    message.type === 'admin' 
-                      ? 'bg-blue-50 dark:bg-blue-900/20 border-l-4 border-blue-500' 
-                      : 'bg-gray-50 dark:bg-gray-700'
-                  }`}>
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{message.sender}</span>
-                      <span className="text-xs text-gray-500 dark:text-gray-400">
-                        {new Date(message.timestamp).toLocaleString('pt-BR')}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 dark:text-gray-300">{message.message}</p>
-                  </div>
-                ))}
+            {/* Parecer Técnico */}
+            {selectedSolicitacao.parecerTecnico && (
+              <div className="mt-6 bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                <h4 className="font-medium text-gray-900 dark:text-gray-100 mb-3 flex items-center">
+                  <CheckCircle size={16} className="mr-2 text-blue-600" />
+                  Parecer Técnico
+                </h4>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">{selectedSolicitacao.parecerTecnico}</p>
+                <div className="flex justify-between text-xs text-gray-500 dark:text-gray-500">
+                  <span>Analisado por: {selectedSolicitacao.analisadoPor}</span>
+                  <span>Data: {selectedSolicitacao.dataAnalise ? formatDate(selectedSolicitacao.dataAnalise) : ''}</span>
+                </div>
               </div>
-            </div>
+            )}
 
-            <div className="flex justify-end space-x-3 mt-6">
+            {/* Ações */}
+            <div className="flex justify-end space-x-3 mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
               <button
-                onClick={() => setShowDetailsModal(false)}
+                onClick={closeModal}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
                 Fechar
               </button>
               <button
-                onClick={() => alert('Gerar relatório PDF')}
-                className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                onClick={() => printDetails(selectedSolicitacao)}
+                className="flex items-center px-4 py-2 bg-purple-600 dark:bg-purple-700 text-white rounded-lg hover:bg-purple-700 dark:hover:bg-purple-600 transition-colors"
               >
-                <Download size={16} className="mr-2" />
-                Relatório PDF
+                <Printer size={16} className="mr-2" />
+                Imprimir Detalhes
               </button>
+              {selectedSolicitacao.status === 'aprovado' && selectedSolicitacao.numeroPortaria && (
+                <button
+                  onClick={() => printPortaria(selectedSolicitacao)}
+                  className="flex items-center px-4 py-2 bg-orange-600 dark:bg-orange-700 text-white rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors"
+                >
+                  <FileCheck size={16} className="mr-2" />
+                  Imprimir Portaria
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
 
-      {/* Portaria Modal */}
-      {showPortariaModal && selectedRequest && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg max-w-4xl w-full max-h-[90vh] overflow-y-auto">
-            {/* Header */}
-            <div className="bg-gradient-to-r from-blue-800 to-blue-900 text-white p-6 rounded-t-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center">
-                  <FileText size={24} className="mr-3" />
-                  <h3 className="text-xl font-bold">Gerar Portaria</h3>
+      {/* Modal de Mensagens */}
+      {showMessageModal && selectedSolicitacao && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-xl p-6 w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center">
+                <MessageSquare size={20} className="mr-2" />
+                Mensagens - {selectedSolicitacao.numeroProtocolo}
+              </h3>
+              <button
+                onClick={() => setShowMessageModal(false)}
+                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Lista de Mensagens */}
+            <div className="space-y-4 mb-6 max-h-60 overflow-y-auto">
+              {selectedSolicitacao.mensagens.length > 0 ? (
+                selectedSolicitacao.mensagens.map((mensagem) => (
+                  <div
+                    key={mensagem.id}
+                    className={`p-4 rounded-lg ${
+                      mensagem.remetente === 'Analista SOSFU' 
+                        ? 'bg-blue-50 dark:bg-blue-900/20 ml-8' 
+                        : 'bg-gray-50 dark:bg-gray-700 mr-8'
+                    }`}
+                  >
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="font-medium text-gray-900 dark:text-gray-100 text-sm">
+                        {mensagem.remetente}
+                      </span>
+                      <span className="text-xs text-gray-500 dark:text-gray-500">
+                        {mensagem.data}
+                      </span>
+                    </div>
+                    <p className="text-sm text-gray-600 dark:text-gray-400">{mensagem.conteudo}</p>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <MessageSquare size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhuma mensagem ainda</p>
                 </div>
+              )}
+            </div>
+
+            {/* Nova Mensagem */}
+            <div className="border-t border-gray-200 dark:border-gray-700 pt-4">
+              <textarea
+                value={newMessage}
+                onChange={(e) => setNewMessage(e.target.value)}
+                placeholder="Digite sua mensagem..."
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
+                rows={3}
+              />
+              <div className="flex justify-end space-x-3 mt-3">
                 <button
-                  onClick={() => setShowPortariaModal(false)}
-                  className="text-white hover:text-gray-200 transition-colors"
+                  onClick={() => setShowMessageModal(false)}
+                  className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                 >
-                  <X size={24} />
+                  Fechar
+                </button>
+                <button
+                  onClick={sendMessage}
+                  disabled={!newMessage.trim()}
+                  className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Send size={16} className="mr-2" />
+                  Enviar
                 </button>
               </div>
             </div>
-
-            {/* Portaria Content */}
-            <div className="p-8 bg-gray-50 dark:bg-gray-700">
-              {/* Document Header */}
-              <div className="bg-white dark:bg-gray-800 rounded-lg shadow-lg p-8 mb-6 border-l-4 border-blue-600">
-                <div className="text-center space-y-2 mb-8">
-                  <h1 className="text-2xl font-bold text-blue-900 dark:text-blue-100 mb-1">
-                    TRIBUNAL DE JUSTIÇA DO ESTADO DO PARÁ
-                  </h1>
-                  <h2 className="text-lg font-semibold text-green-700 dark:text-green-400 mb-1">
-                    Secretaria de Planejamento, Coordenação e Finanças
-                  </h2>
-                  <h3 className="text-base font-medium text-purple-600 dark:text-purple-400 mb-1">
-                    Serviço de Suprimento de Fundos
-                  </h3>
-                  <div className="bg-gradient-to-r from-orange-500 to-red-500 text-white px-4 py-2 rounded-lg inline-block font-bold text-lg">
-                    Portaria: SF-2025-{String(Math.floor(Math.random() * 9999) + 1).padStart(4, '0')}
-                  </div>
-                </div>
-              </div>
-
-              {/* Dados do Solicitante */}
-              <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-blue-500">
-                <h4 className="text-lg font-semibold text-blue-800 dark:text-blue-200 mb-4 border-b-2 border-blue-300 dark:border-blue-600 pb-2">
-                  Dados do Solicitante
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Nome:</label>
-                    {isEditingPortaria ? (
-                      <input
-                        type="text"
-                        value={portariaData.solicitanteName}
-                        onChange={(e) => setPortariaData({...portariaData, solicitanteName: e.target.value})}
-                        className="w-full px-3 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    ) : (
-                      <p className="text-gray-900 dark:text-gray-100 font-medium">{portariaData.solicitanteName}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Departamento:</label>
-                    {isEditingPortaria ? (
-                      <input
-                        type="text"
-                        value={portariaData.department}
-                        onChange={(e) => setPortariaData({...portariaData, department: e.target.value})}
-                        className="w-full px-3 py-2 border-2 border-blue-300 dark:border-blue-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    ) : (
-                      <p className="text-gray-900 dark:text-gray-100 font-medium">{portariaData.department}</p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">CPF:</label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">{selectedRequest?.requester.cpf}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Município:</label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">{selectedRequest?.requester.municipality}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Email:</label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">{selectedRequest?.requester.email}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Telefone:</label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">{selectedRequest?.requester.phone}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Gestor Responsável:</label>
-                    <p className="text-gray-900 dark:text-gray-100 font-medium">{selectedRequest?.requester.manager}</p>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-1">Prioridade:</label>
-                    <span className={`inline-flex px-3 py-1 text-sm font-bold rounded-full ${getPriorityColor(selectedRequest?.priority || 'media')}`}>
-                      {selectedRequest?.priority === 'alta' ? 'Alta' : 
-                       selectedRequest?.priority === 'media' ? 'Média' : 
-                       selectedRequest?.priority === 'baixa' ? 'Baixa' : 'Urgente'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* PTRES e DOTAÇÕES */}
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 dark:from-green-900/20 dark:to-emerald-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-green-500">
-                <h4 className="text-lg font-semibold text-green-800 dark:text-green-200 mb-4 border-b-2 border-green-300 dark:border-green-600 pb-2">
-                  Dados Orçamentários
-                </h4>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">PTRES *</label>
-                    {isEditingPortaria ? (
-                      <input
-                        type="number"
-                        value={portariaData.ptres}
-                        onChange={(e) => setPortariaData({...portariaData, ptres: e.target.value})}
-                        className="w-full px-3 py-2 border-2 border-green-300 dark:border-green-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Digite o PTRES"
-                      />
-                    ) : (
-                      <p className="text-gray-900 dark:text-gray-100 font-medium bg-green-100 dark:bg-green-800 px-3 py-2 rounded-lg">
-                        {portariaData.ptres || 'Não informado'}
-                      </p>
-                    )}
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">DOTAÇÕES * (Texto Editável)</label>
-                    {isEditingPortaria ? (
-                      <textarea
-                        rows={3}
-                        value={portariaData.dotacoes}
-                        onChange={(e) => setPortariaData({...portariaData, dotacoes: e.target.value})}
-                        className="w-full px-3 py-2 border-2 border-green-300 dark:border-green-600 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
-                        placeholder="Digite as DOTAÇÕES (ex: 02.061.0571.4256.0001 - Manutenção e Funcionamento do Poder Judiciário)"
-                      />
-                    ) : (
-                      <p className="text-gray-900 dark:text-gray-100 font-medium bg-green-100 dark:bg-green-800 px-3 py-2 rounded-lg">
-                        {portariaData.dotacoes || 'Não informado'}
-                      </p>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Prazos */}
-              <div className="bg-gradient-to-r from-purple-50 to-pink-50 dark:from-purple-900/20 dark:to-pink-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-purple-500">
-                <h4 className="text-lg font-semibold text-purple-800 dark:text-purple-200 mb-4 border-b-2 border-purple-300 dark:border-purple-600 pb-2">
-                  Prazos
-                </h4>
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Prazo de Aplicação:</label>
-                    <div className="flex items-center space-x-3">
-                      {isEditingPortaria ? (
-                        <>
-                          <input
-                            type="date"
-                            value={portariaData.prazoAplicacaoInicio}
-                            onChange={(e) => setPortariaData({...portariaData, prazoAplicacaoInicio: e.target.value})}
-                            className="px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          />
-                          <span className="text-gray-500 font-medium">até</span>
-                          <input
-                            type="date"
-                            value={portariaData.prazoAplicacaoFim}
-                            onChange={(e) => setPortariaData({...portariaData, prazoAplicacaoFim: e.target.value})}
-                            className="px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          />
-                        </>
-                      ) : (
-                        <p className="text-gray-900 dark:text-gray-100 font-medium bg-purple-100 dark:bg-purple-800 px-3 py-2 rounded-lg">
-                          {portariaData.prazoAplicacaoInicio ? new Date(portariaData.prazoAplicacaoInicio).toLocaleDateString('pt-BR') : 'Não informado'} até {portariaData.prazoAplicacaoFim ? new Date(portariaData.prazoAplicacaoFim).toLocaleDateString('pt-BR') : 'Não informado'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                  <div>
-                    <label className="block text-sm font-bold text-gray-700 dark:text-gray-300 mb-2">Prazo de Prestação de Contas:</label>
-                    <div className="flex items-center space-x-3">
-                      {isEditingPortaria ? (
-                        <>
-                          <input
-                            type="date"
-                            value={portariaData.prazoPrestacaoInicio}
-                            onChange={(e) => setPortariaData({...portariaData, prazoPrestacaoInicio: e.target.value})}
-                            className="px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          />
-                          <span className="text-gray-500 font-medium">até</span>
-                          <input
-                            type="date"
-                            value={portariaData.prazoPrestacaoFim}
-                            onChange={(e) => setPortariaData({...portariaData, prazoPrestacaoFim: e.target.value})}
-                            className="px-3 py-2 border-2 border-purple-300 dark:border-purple-600 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                          />
-                        </>
-                      ) : (
-                        <p className="text-gray-900 dark:text-gray-100 font-medium bg-purple-100 dark:bg-purple-800 px-3 py-2 rounded-lg">
-                          {portariaData.prazoPrestacaoInicio ? new Date(portariaData.prazoPrestacaoInicio).toLocaleDateString('pt-BR') : 'Não informado'} até {portariaData.prazoPrestacaoFim ? new Date(portariaData.prazoPrestacaoFim).toLocaleDateString('pt-BR') : 'Não informado'}
-                        </p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Justificativa (Finalidade) */}
-              <div className="bg-gradient-to-r from-yellow-50 to-orange-50 dark:from-yellow-900/20 dark:to-orange-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-yellow-500">
-                <h4 className="text-lg font-semibold text-yellow-800 dark:text-yellow-200 mb-4 border-b-2 border-yellow-300 dark:border-yellow-600 pb-2">
-                  Finalidade
-                </h4>
-                {isEditingPortaria ? (
-                  <textarea
-                    value={portariaData.justification}
-                    onChange={(e) => setPortariaData({...portariaData, justification: e.target.value})}
-                    rows={4}
-                    className="w-full px-3 py-2 border-2 border-yellow-300 dark:border-yellow-600 rounded-lg focus:ring-2 focus:ring-yellow-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
-                  />
-                ) : (
-                  <p className="text-gray-900 dark:text-gray-100 leading-relaxed bg-yellow-100 dark:bg-yellow-800 p-4 rounded-lg font-medium">{portariaData.justification}</p>
-                )}
-              </div>
-
-              {/* Elementos de Despesa */}
-              <div className="bg-gradient-to-r from-indigo-50 to-blue-50 dark:from-indigo-900/20 dark:to-blue-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-indigo-500">
-                <h4 className="text-lg font-semibold text-indigo-800 dark:text-indigo-200 mb-4 border-b-2 border-indigo-300 dark:border-indigo-600 pb-2">
-                  Elementos de Despesa
-                </h4>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse border-2 border-indigo-300 dark:border-indigo-600 rounded-lg overflow-hidden">
-                    <thead className="bg-gradient-to-r from-indigo-500 to-blue-500 text-white">
-                      <tr>
-                        <th className="border border-indigo-400 px-4 py-3 text-left text-sm font-bold">
-                          Código
-                        </th>
-                        <th className="border border-indigo-400 px-4 py-3 text-left text-sm font-bold">
-                          Descrição
-                        </th>
-                        <th className="border border-indigo-400 px-4 py-3 text-right text-sm font-bold">
-                          Valor (R$)
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white dark:bg-gray-800">
-                      {selectedRequest?.elements.map((element, index) => (
-                        <tr key={index} className={index % 2 === 0 ? 'bg-indigo-50 dark:bg-indigo-900/10' : 'bg-white dark:bg-gray-800'}>
-                          <td className="border border-indigo-200 dark:border-indigo-700 px-4 py-3 text-sm font-mono text-gray-900 dark:text-gray-100">
-                            {element.code}
-                          </td>
-                          <td className="border border-indigo-200 dark:border-indigo-700 px-4 py-3 text-sm font-medium text-gray-900 dark:text-gray-100">
-                            {element.description}
-                          </td>
-                          <td className="border border-indigo-200 dark:border-indigo-700 px-4 py-3 text-sm text-right font-bold text-green-600 dark:text-green-400">
-                            {element.amount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                          </td>
-                        </tr>
-                      ))}
-                      <tr className="bg-gray-100 dark:bg-gray-600 font-bold">
-                        <td colSpan={2} className="border border-indigo-200 dark:border-indigo-700 px-4 py-3 text-sm text-right text-gray-900 dark:text-gray-100 font-bold">
-                          Total da Solicitação:
-                        </td>
-                        <td className="border border-indigo-200 dark:border-indigo-700 px-4 py-3 text-sm text-right text-green-600 dark:text-green-400 font-bold text-lg">
-                          {selectedRequest?.totalAmount.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' })}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-
-              {/* Ordenador de Despesa */}
-              <div className="bg-gradient-to-r from-red-50 to-pink-50 dark:from-red-900/20 dark:to-pink-900/20 rounded-lg shadow-sm p-6 mb-6 border-l-4 border-red-500">
-                <h4 className="text-lg font-semibold text-red-800 dark:text-red-200 mb-4 border-b-2 border-red-300 dark:border-red-600 pb-2">
-                  Ordenador de Despesa
-                </h4>
-                <div className="bg-red-100 dark:bg-red-800 p-4 rounded-lg">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">
-                      Nome do Ordenador de Despesa *
-                    </label>
-                    {isEditingPortaria ? (
-                      <input
-                        type="text"
-                        value={portariaData.ordenadorDespesa}
-                        onChange={(e) => setPortariaData({...portariaData, ordenadorDespesa: e.target.value})}
-                        className="w-full px-3 py-2 border-2 border-red-300 rounded-lg focus:ring-2 focus:ring-red-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-center font-bold text-lg"
-                        placeholder="Nome do Ordenador de Despesa"
-                      />
-                    ) : (
-                      <div className="px-3 py-2 bg-white dark:bg-gray-700 border-2 border-red-300 rounded-lg text-gray-900 dark:text-gray-100 text-center font-bold text-lg">
-                        {portariaData.ordenadorDespesa}
-                      </div>
-                    )}
-                  </div>
-                </div>
-              </div>
-
-              {/* Footer */}
-              <div className="bg-gray-100 dark:bg-gray-700 rounded-lg p-4 text-center">
-                <p className="text-sm text-gray-600 dark:text-gray-400">
-                  <span className="font-bold">Data de Geração:</span> {new Date().toLocaleString('pt-BR')}
-                </p>
-              </div>
-            </div>
-
-            {/* Action Buttons */}
-            <div className="bg-gradient-to-r from-gray-100 to-gray-200 dark:from-gray-700 dark:to-gray-800 px-6 py-4 rounded-b-lg flex justify-end space-x-3">
-              <button
-                onClick={() => setShowPortariaModal(false)}
-                className="px-6 py-2 text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-600 border-2 border-gray-300 dark:border-gray-500 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-500 transition-colors font-medium"
-              >
-                Fechar
-              </button>
-              
-              <button
-                onClick={savePortaria}
-                className="px-6 py-2 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all duration-200 flex items-center font-medium shadow-lg"
-              >
-                <Save size={16} className="mr-2" />
-                Salvar
-              </button>
-              
-              <button
-                onClick={() => setIsEditingPortaria(!isEditingPortaria)}
-                className="px-6 py-2 bg-gradient-to-r from-blue-500 to-blue-600 text-white rounded-lg hover:from-blue-600 hover:to-blue-700 transition-all duration-200 flex items-center font-medium shadow-lg"
-              >
-                <Edit size={16} className="mr-2" />
-                {isEditingPortaria ? 'Visualizar' : 'Editar'}
-              </button>
-              
-              <button
-                onClick={() => window.print()}
-                className="px-6 py-2 bg-gradient-to-r from-purple-500 to-purple-600 text-white rounded-lg hover:from-purple-600 hover:to-purple-700 transition-all duration-200 flex items-center font-medium shadow-lg"
-              >
-                <Printer size={16} className="mr-2" />
-                Imprimir
-              </button>
-            </div>
           </div>
         </div>
       )}
-
-      {/* Estilos para impressão A4 */}
-      <style jsx>{`
-        @media print {
-          /* Reset geral para impressão */
-          * {
-            -webkit-print-color-adjust: exact !important;
-            color-adjust: exact !important;
-            print-color-adjust: exact !important;
-          }
-
-          /* Configuração da página A4 */
-          @page {
-            size: A4 portrait;
-            margin: 8mm 10mm;
-            padding: 0;
-          }
-
-          /* Container principal */
-          .print-container {
-            width: 100% !important;
-            max-width: none !important;
-            font-size: 10px !important;
-            line-height: 1.3 !important;
-            color: #000 !important;
-            background: white !important;
-            margin: 0 !important;
-            padding: 0 !important;
-          }
-
-          /* Cabeçalho */
-          .print-container h1 {
-            font-size: 12px !important;
-            margin: 2mm 0 !important;
-            text-align: center !important;
-            font-weight: bold !important;
-          }
-
-          .print-container h2 {
-            font-size: 11px !important;
-            margin: 1mm 0 !important;
-            text-align: center !important;
-          }
-
-          .print-container h3 {
-            font-size: 10px !important;
-            margin: 1mm 0 !important;
-            font-weight: bold !important;
-            border-bottom: 1px solid #000 !important;
-            padding-bottom: 1mm !important;
-          }
-
-          /* Seções */
-          .print-container > div {
-            margin-bottom: 3mm !important;
-            padding: 2mm !important;
-            border: 1px solid #000 !important;
-            border-radius: 0 !important;
-            background: white !important;
-            page-break-inside: avoid !important;
-          }
-
-          /* Grid responsivo para impressão */
-          .grid {
-            display: grid !important;
-            grid-template-columns: 1fr 1fr !important;
-            gap: 2mm !important;
-          }
-
-          /* Campos de entrada */
-          .print-container input,
-          .print-container textarea,
-          .print-container div[class*="border"] {
-            border: none !important;
-            border-bottom: 1px solid #000 !important;
-            background: transparent !important;
-            padding: 1mm 0 !important;
-            font-size: 10px !important;
-            color: #000 !important;
-          }
-
-          /* Tabelas */
-          .print-container table {
-            width: 100% !important;
-            border-collapse: collapse !important;
-            margin: 2mm 0 !important;
-            font-size: 9px !important;
-          }
-
-          .print-container th,
-          .print-container td {
-            border: 1px solid #000 !important;
-            padding: 1mm !important;
-            text-align: left !important;
-          }
-
-          .print-container th {
-            background: #f0f0f0 !important;
-            font-weight: bold !important;
-          }
-
-          /* Labels */
-          .print-container label {
-            font-weight: bold !important;
-            font-size: 9px !important;
-            color: #000 !important;
-            margin-bottom: 1mm !important;
-            display: block !important;
-          }
-
-          /* Botões e elementos não imprimíveis */
-          .no-print,
-          button,
-          .print-container button {
-            display: none !important;
-          }
-
-          /* Quebras de página */
-          .page-break {
-            page-break-before: always !important;
-          }
-
-          /* Evitar quebras indesejadas */
-          .avoid-break {
-            page-break-inside: avoid !important;
-          }
-
-          /* Ajustes específicos para campos de texto */
-          .print-container textarea {
-            min-height: 8mm !important;
-            border: 1px solid #000 !important;
-            padding: 1mm !important;
-          }
-
-          /* Ordenador de despesa com cor escura */
-          .print-container .ordenador-nome {
-            color: #000 !important;
-            font-weight: bold !important;
-            font-size: 11px !important;
-            text-align: center !important;
-            border: 1px solid #000 !important;
-            padding: 2mm !important;
-          }
-
-          /* Otimização do espaçamento */
-          .print-container .mb-6 {
-            margin-bottom: 2mm !important;
-          }
-
-          .print-container .p-6 {
-            padding: 2mm !important;
-          }
-
-          /* Total destacado */
-          .print-container .total-value {
-            font-size: 12px !important;
-            font-weight: bold !important;
-            color: #000 !important;
-            text-align: right !important;
-            border: 2px solid #000 !important;
-            padding: 2mm !important;
-          }
-        }
-      `}</style>
     </div>
   );
 };
