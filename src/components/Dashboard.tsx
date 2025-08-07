@@ -56,7 +56,7 @@ import {
   CheckCircle2,
   XCircle,
   History,
-  UserCheck
+  UserCheck,
 } from 'lucide-react';
 
 interface SolicitacaoSuprimento {
