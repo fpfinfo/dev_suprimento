@@ -13,7 +13,7 @@ import {
   TrendingUp,
   CheckCircle,
   Building,
-  Calculator
+  Calculator,
   Calendar,
   MapPin,
   Building,
