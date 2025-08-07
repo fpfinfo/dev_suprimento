@@ -1,1181 +1,648 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../contexts/AuthContext';
 import { 
-  ArrowLeft,
-  Plus,
+  Plus, 
+  Search, 
+  Filter, 
+  Eye, 
+  Edit, 
+  Trash2, 
+  Download,
   Upload,
   FileText,
   DollarSign,
   Calendar,
-  CheckCircle,
-  Circle,
-  X,
-  BarChart3,
-  Search,
-  Filter,
-  Eye,
-  Edit,
-  Trash2,
-  Clock,
-  AlertTriangle,
-  Send,
-  Building,
   User,
-  MapPin,
-  Target
+  Building,
+  AlertTriangle,
+  CheckCircle,
+  Clock,
+  X,
+  Save,
+  Send,
+  MessageSquare,
+  Bell,
+  Paperclip,
+  Image,
+  File,
+  ExternalLink,
+  RefreshCw,
+  Archive,
+  Star,
+  Flag,
+  ChevronDown,
+  ChevronUp,
+  Info,
+  Zap
 } from 'lucide-react';
 
 interface SupplyRequest {
   id: string;
   protocol: string;
-  requester: string;
-  department: string;
+  requesterId: string;
+  requesterName: string;
+  requesterDepartment: string;
   totalAmount: number;
-  status: 'rascunho' | 'em_elaboracao' | 'enviada' | 'em_analise' | 'aprovada' | 'rejeitada';
-  priority: 'baixa' | 'media' | 'alta';
-  dueDate: string;
-  createdAt: string;
   justification: string;
-  expenses: ExpenseRecord[];
+  usageDeadline: string;
+  status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado' | 'cancelado';
+  priority: 'baixa' | 'media' | 'alta' | 'urgente';
+  createdAt: string;
+  updatedAt: string;
+  analyzedBy?: string;
+  analysisDate?: string;
+  technicalOpinion?: string;
+  portariaNumber?: string;
+  portariaDate?: string;
+  observations?: string;
+  attachments?: FileAttachment[];
+  messages?: Message[];
+  alerts?: Alert[];
 }
 
-interface ExpenseRecord {
+interface FileAttachment {
   id: string;
+  name: string;
   type: string;
-  description: string;
-  date: string;
-  amount: number;
-  document?: File;
+  size: number;
+  url: string;
+  uploadedAt: string;
+  uploadedBy: string;
 }
 
-interface ExpenseItem {
-  elementCode: string;
-  description: string;
-  amount: number;
+interface Message {
+  id: string;
+  senderId: string;
+  senderName: string;
+  senderRole: 'administrador' | 'suprido';
+  content: string;
+  timestamp: string;
+  read: boolean;
+  attachments?: FileAttachment[];
+}
+
+interface Alert {
+  id: string;
+  type: 'info' | 'warning' | 'error' | 'success';
+  title: string;
+  message: string;
+  timestamp: string;
+  read: boolean;
+  priority: 'baixa' | 'media' | 'alta';
+  actionRequired?: boolean;
 }
 
 const SupplyFundsModule: React.FC = () => {
-  const [currentView, setCurrentView] = useState<'list' | 'form'>('list');
-  const [editingRequest, setEditingRequest] = useState<SupplyRequest | null>(null);
-  const [showDetailsModal, setShowDetailsModal] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<SupplyRequest | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-
-  // Form data
-  const [formData, setFormData] = useState({
-    protocol: 'SF-2024-004',
-    requester: 'Paulo Roberto Silva',
-    cpf: '123.456.789-00',
-    email: 'paulo.roberto@tjpa.jus.br',
-    department: 'VARA CRIMINAL',
-    municipality: 'Belém',
-    justification: '',
-    limitDate: '',
-    finalDate: '',
-    observations: ''
-  });
-
-  const [expenses, setExpenses] = useState<ExpenseItem[]>([]);
-  const [newExpense, setNewExpense] = useState({
-    elementCode: '',
-    description: '',
-    amount: ''
-  });
-
-  const [currentStep, setCurrentStep] = useState(1);
+  const { user, canAccessModule } = useAuth();
+  const [requests, setRequests] = useState<SupplyRequest[]>([]);
+  const [filteredRequests, setFilteredRequests] = useState<SupplyRequest[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [selectedRequest, setSelectedRequest] = useState<SupplyRequest | null>(null);
+  const [showRequestModal, setShowRequestModal] = useState(false);
+  const [showMessagesModal, setShowMessagesModal] = useState(false);
+  const [showAlertsModal, setShowAlertsModal] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
-  
-  const [formDataOld, setFormDataOld] = useState({
-    protocolNumber: '',
-    totalAmount: '0.00',
-    requester: 'Paulo Roberto Silva',
-    cpf: '123.456.789-00',
-    department: 'VARA CRIMINAL',
-    justification: '',
-    dueDate: '',
-    ptres: '',
-    dotacoes: ''
-  });
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+  const [uploadProgress, setUploadProgress] = useState<{[key: string]: number}>({});
+  const [dragOver, setDragOver] = useState(false);
+  const [newMessage, setNewMessage] = useState('');
+  const [messageAttachments, setMessageAttachments] = useState<File[]>([]);
 
-  const [expensesOld, setExpensesOld] = useState<ExpenseRecord[]>([]);
-  const [newExpenseOld, setNewExpenseOld] = useState({
-    type: '',
-    description: '',
-    date: '',
-    amount: '',
-    authorizationNumber: '',
-    elementDescription: ''
-  });
+  // Dados simulados
+  useEffect(() => {
+    const mockRequests: SupplyRequest[] = [
+      {
+        id: '1',
+        protocol: 'SF-2024-0001',
+        requesterId: user?.id || '1',
+        requesterName: user?.name || 'João Silva Santos',
+        requesterDepartment: 'Vara Criminal',
+        totalAmount: 15000,
+        justification: 'Aquisição de material de escritório e equipamentos para modernização do setor',
+        usageDeadline: '2024-03-15',
+        status: 'em_analise',
+        priority: 'alta',
+        createdAt: '2024-01-15T10:30:00Z',
+        updatedAt: '2024-01-16T14:20:00Z',
+        analyzedBy: 'Admin Sistema',
+        analysisDate: '2024-01-16T14:20:00Z',
+        technicalOpinion: 'Solicitação em análise. Documentação completa.',
+        observations: 'Aguardando aprovação final da diretoria.',
+        attachments: [
+          {
+            id: 'att1',
+            name: 'orcamento_material.pdf',
+            type: 'application/pdf',
+            size: 2048576,
+            url: '#',
+            uploadedAt: '2024-01-15T10:35:00Z',
+            uploadedBy: 'João Silva Santos'
+          },
+          {
+            id: 'att2',
+            name: 'justificativa_detalhada.docx',
+            type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+            size: 1024000,
+            url: '#',
+            uploadedAt: '2024-01-15T10:40:00Z',
+            uploadedBy: 'João Silva Santos'
+          }
+        ],
+        messages: [
+          {
+            id: 'msg1',
+            senderId: 'admin1',
+            senderName: 'Admin Sistema',
+            senderRole: 'administrador',
+            content: 'Solicitação recebida e em análise. Por favor, aguarde retorno em até 5 dias úteis.',
+            timestamp: '2024-01-16T09:00:00Z',
+            read: true
+          },
+          {
+            id: 'msg2',
+            senderId: user?.id || '1',
+            senderName: user?.name || 'João Silva Santos',
+            senderRole: 'suprido',
+            content: 'Obrigado pela confirmação. Fico no aguardo do retorno.',
+            timestamp: '2024-01-16T09:15:00Z',
+            read: true
+          }
+        ],
+        alerts: [
+          {
+            id: 'alert1',
+            type: 'info',
+            title: 'Solicitação em Análise',
+            message: 'Sua solicitação está sendo analisada pela equipe técnica.',
+            timestamp: '2024-01-16T14:20:00Z',
+            read: false,
+            priority: 'media'
+          }
+        ]
+      },
+      {
+        id: '2',
+        protocol: 'SF-2024-0002',
+        requesterId: user?.id || '1',
+        requesterName: user?.name || 'João Silva Santos',
+        requesterDepartment: 'Vara Criminal',
+        totalAmount: 8500,
+        justification: 'Despesas com transporte para diligências urgentes',
+        usageDeadline: '2024-02-28',
+        status: 'aprovado',
+        priority: 'urgente',
+        createdAt: '2024-01-10T08:15:00Z',
+        updatedAt: '2024-01-12T16:45:00Z',
+        analyzedBy: 'Admin Sistema',
+        analysisDate: '2024-01-12T16:45:00Z',
+        technicalOpinion: 'Solicitação aprovada. Valor liberado conforme solicitado.',
+        portariaNumber: 'PORT-2024-001',
+        portariaDate: '2024-01-12',
+        attachments: [
+          {
+            id: 'att3',
+            name: 'planilha_custos.xlsx',
+            type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            size: 512000,
+            url: '#',
+            uploadedAt: '2024-01-10T08:20:00Z',
+            uploadedBy: 'João Silva Santos'
+          }
+        ],
+        messages: [
+          {
+            id: 'msg3',
+            senderId: 'admin1',
+            senderName: 'Admin Sistema',
+            senderRole: 'administrador',
+            content: 'Solicitação aprovada! Portaria emitida. Valor disponível para utilização.',
+            timestamp: '2024-01-12T16:45:00Z',
+            read: true
+          }
+        ],
+        alerts: [
+          {
+            id: 'alert2',
+            type: 'success',
+            title: 'Solicitação Aprovada',
+            message: 'Sua solicitação foi aprovada e o valor está disponível.',
+            timestamp: '2024-01-12T16:45:00Z',
+            read: true,
+            priority: 'alta'
+          }
+        ]
+      }
+    ];
 
-  // Dados simulados para a listagem
-  const [supplyRequests, setSupplyRequests] = useState<SupplyRequest[]>([
-    {
-      id: '1',
-      protocol: 'SF-2024-001',
-      requester: 'João Silva Santos',
-      department: 'Vara Criminal',
-      totalAmount: 5000.00,
-      status: 'rascunho',
-      priority: 'alta',
-      dueDate: '2024-02-15',
-      createdAt: '2024-01-15',
-      justification: 'Aquisição de materiais de escritório para funcionamento da vara criminal.',
-      expenses: [
-        {
-          id: '1',
-          type: 'material_consumo',
-          description: 'Papel A4, canetas e materiais diversos',
-          date: '2024-01-20',
-          amount: 2500.00
-        },
-        {
-          id: '2',
-          type: 'servicos_terceiros',
-          description: 'Serviços de manutenção de equipamentos',
-          date: '2024-01-22',
-          amount: 2500.00
-        }
-      ]
-    },
-    {
-      id: '2',
-      protocol: 'SF-2024-002',
-      requester: 'Maria Oliveira Costa',
-      department: 'Vara Cível',
-      totalAmount: 3500.00,
-      status: 'em_elaboracao',
-      priority: 'media',
-      dueDate: '2024-02-20',
-      createdAt: '2024-01-18',
-      justification: 'Compra de equipamentos de informática para modernização do setor.',
-      expenses: [
-        {
-          id: '3',
-          type: 'equipamentos',
-          description: 'Computadores e periféricos',
-          date: '2024-01-25',
-          amount: 3500.00
-        }
-      ]
-    },
-    {
-      id: '3',
-      protocol: 'SF-2024-003',
-      requester: 'Paulo Roberto Silva',
-      department: 'VARA CRIMINAL',
-      totalAmount: 1500.00,
-      status: 'em_elaboracao',
-      priority: 'media',
-      dueDate: '2024-02-25',
-      createdAt: '2024-01-20',
-      justification: 'Materiais para manutenção e limpeza das instalações.',
-      expenses: [
-        {
-          id: '4',
-          type: 'material_consumo',
-          description: 'Produtos de limpeza e manutenção',
-          date: '2024-01-28',
-          amount: 1500.00
-        }
-      ]
-    }
-  ]);
+    setRequests(mockRequests);
+    setFilteredRequests(mockRequests);
+  }, [user]);
 
-  const steps = [
-    { number: 1, title: 'Dados', active: true, completed: false },
-    { number: 2, title: 'Despesas', active: false, completed: false },
-    { number: 3, title: 'Documentos', active: false, completed: false },
-    { number: 4, title: 'Revisão', active: false, completed: false }
-  ];
+  // Filtros
+  useEffect(() => {
+    let filtered = requests.filter(request => {
+      const matchesSearch = 
+        request.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.requesterName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        request.justification.toLowerCase().includes(searchTerm.toLowerCase());
+      
+      const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
+      const matchesPriority = priorityFilter === 'all' || request.priority === priorityFilter;
+      
+      // Se não for admin, mostrar apenas próprias solicitações
+      const matchesUser = user?.role === 'administrador' || request.requesterId === user?.id;
+      
+      return matchesSearch && matchesStatus && matchesPriority && matchesUser;
+    });
+
+    setFilteredRequests(filtered);
+  }, [requests, searchTerm, statusFilter, priorityFilter, user]);
 
   const getStatusColor = (status: string) => {
     const colors = {
-      'rascunho': 'bg-gray-100 text-gray-800',
-      'em_elaboracao': 'bg-blue-100 text-blue-800',
-      'enviada': 'bg-purple-100 text-purple-800',
-      'em_analise': 'bg-yellow-100 text-yellow-800',
-      'aprovada': 'bg-green-100 text-green-800',
-      'rejeitada': 'bg-red-100 text-red-800'
+      pendente: 'bg-yellow-100 text-yellow-800',
+      em_analise: 'bg-blue-100 text-blue-800',
+      aprovado: 'bg-green-100 text-green-800',
+      rejeitado: 'bg-red-100 text-red-800',
+      cancelado: 'bg-gray-100 text-gray-800'
     };
     return colors[status as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getStatusLabel = (status: string) => {
-    const labels = {
-      'rascunho': 'Rascunho',
-      'em_elaboracao': 'Em Elaboração',
-      'enviada': 'Enviada',
-      'em_analise': 'Em Análise',
-      'aprovada': 'Aprovada',
-      'rejeitada': 'Rejeitada'
-    };
-    return labels[status as keyof typeof labels] || status;
-  };
-
   const getPriorityColor = (priority: string) => {
     const colors = {
-      'baixa': 'bg-gray-100 text-gray-800',
-      'media': 'bg-yellow-100 text-yellow-800',
-      'alta': 'bg-red-100 text-red-800'
+      baixa: 'bg-gray-100 text-gray-800',
+      media: 'bg-blue-100 text-blue-800',
+      alta: 'bg-orange-100 text-orange-800',
+      urgente: 'bg-red-100 text-red-800'
     };
     return colors[priority as keyof typeof colors] || 'bg-gray-100 text-gray-800';
   };
 
-  const getPriorityLabel = (priority: string) => {
-    const labels = {
-      'baixa': 'Baixa',
-      'media': 'Média',
-      'alta': 'Alta'
-    };
-    return labels[priority as keyof typeof labels] || priority;
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('pt-BR', {
+      style: 'currency',
+      currency: 'BRL'
+    }).format(value);
   };
 
-  const stats = {
-    total: supplyRequests.length,
-    inProgress: supplyRequests.filter(r => r.status === 'em_elaboracao').length,
-    pending: supplyRequests.filter(r => r.status === 'rascunho').length,
-    approved: supplyRequests.filter(r => r.status === 'aprovada').length
+  const formatFileSize = (bytes: number) => {
+    if (bytes === 0) return '0 Bytes';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
   };
 
-  const filteredRequests = supplyRequests.filter(request => {
-    const matchesSearch = 
-      request.protocol.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.requester.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      request.department.toLowerCase().includes(searchTerm.toLowerCase());
+  const getFileIcon = (type: string) => {
+    if (type.includes('image')) return <Image size={16} className="text-green-600" />;
+    if (type.includes('pdf')) return <FileText size={16} className="text-red-600" />;
+    if (type.includes('word')) return <FileText size={16} className="text-blue-600" />;
+    if (type.includes('excel') || type.includes('spreadsheet')) return <FileText size={16} className="text-green-600" />;
+    return <File size={16} className="text-gray-600" />;
+  };
+
+  // Upload de arquivos
+  const handleFileUpload = async (files: FileList | File[], requestId?: string) => {
+    const fileArray = Array.from(files);
     
-    const matchesStatus = statusFilter === 'all' || request.status === statusFilter;
-    
-    return matchesSearch && matchesStatus;
-  });
+    for (const file of fileArray) {
+      // Validações
+      if (file.size > 10 * 1024 * 1024) { // 10MB
+        alert(`Arquivo ${file.name} é muito grande. Máximo 10MB.`);
+        continue;
+      }
 
-  const generateProtocolNumber = () => {
-    const year = new Date().getFullYear();
-    const nextNumber = supplyRequests.length + 1;
-    return `SF-${year}-${nextNumber.toString().padStart(3, '0')}`;
-  };
+      const allowedTypes = [
+        'application/pdf',
+        'image/jpeg',
+        'image/png',
+        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+        'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+      ];
 
-  const addExpense = () => {
-    if (newExpense.elementCode && newExpense.description && newExpense.amount) {
-      const expense: ExpenseItem = {
-        elementCode: newExpense.elementCode,
-        description: newExpense.description,
-        amount: parseFloat(newExpense.amount)
+      if (!allowedTypes.includes(file.type)) {
+        alert(`Tipo de arquivo ${file.name} não permitido.`);
+        continue;
+      }
+
+      // Simular upload com progresso
+      const fileId = Date.now().toString() + Math.random().toString(36).substr(2, 9);
+      setUploadProgress(prev => ({ ...prev, [fileId]: 0 }));
+
+      // Simular progresso
+      for (let progress = 0; progress <= 100; progress += 10) {
+        await new Promise(resolve => setTimeout(resolve, 100));
+        setUploadProgress(prev => ({ ...prev, [fileId]: progress }));
+      }
+
+      // Adicionar arquivo à lista
+      const newAttachment: FileAttachment = {
+        id: fileId,
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: user?.name || 'Usuário'
       };
-      
-      setExpenses([...expenses, expense]);
-      
-      setNewExpense({
-        elementCode: '',
-        description: '',
-        amount: ''
-      });
+
+      if (requestId) {
+        setRequests(prev => prev.map(req => 
+          req.id === requestId 
+            ? { ...req, attachments: [...(req.attachments || []), newAttachment] }
+            : req
+        ));
+      }
+
+      // Remover progresso
+      setTimeout(() => {
+        setUploadProgress(prev => {
+          const newProgress = { ...prev };
+          delete newProgress[fileId];
+          return newProgress;
+        });
+      }, 1000);
     }
   };
 
-  const removeExpense = (index: number) => {
-    const updatedExpenses = expenses.filter((_, i) => i !== index);
-    setExpenses(updatedExpenses);
+  // Drag and Drop
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(true);
   };
 
-  const addExpenseOld = () => {
-    if (newExpenseOld.type && newExpenseOld.description && newExpenseOld.date && newExpenseOld.amount) {
-      const expense: ExpenseRecord = {
-        id: Date.now().toString(),
-        type: newExpenseOld.type,
-        description: newExpenseOld.description,
-        date: newExpenseOld.date,
-        amount: parseFloat(newExpenseOld.amount)
-      };
-      
-      setExpensesOld([...expensesOld, expense]);
-      
-      // Atualizar valor total
-      const newTotal = expensesOld.reduce((sum, exp) => sum + exp.amount, 0) + expense.amount;
-      setFormDataOld(prev => ({
-        ...prev,
-        totalAmount: newTotal.toFixed(2)
-      }));
-      
-      setNewExpenseOld({
-        type: '',
-        description: '',
-        date: '',
-        amount: '',
-        authorizationNumber: '',
-        elementDescription: ''
-      });
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+  };
+
+  const handleDrop = (e: React.DragEvent, requestId?: string) => {
+    e.preventDefault();
+    setDragOver(false);
+    const files = e.dataTransfer.files;
+    if (files.length > 0) {
+      handleFileUpload(files, requestId);
     }
   };
 
-  const removeExpenseOld = (id: string) => {
-    const updatedExpenses = expensesOld.filter(exp => exp.id !== id);
-    setExpensesOld(updatedExpenses);
-    
-    // Atualizar valor total
-    const newTotal = updatedExpenses.reduce((sum, exp) => sum + exp.amount, 0);
-    setFormDataOld(prev => ({
-      ...prev,
-      totalAmount: newTotal.toFixed(2)
-    }));
-  };
+  // Enviar mensagem
+  const sendMessage = (requestId: string) => {
+    if (!newMessage.trim()) return;
 
-  const handleNewRequest = () => {
-    setCurrentView('form');
-    setEditingRequest(null);
-    // Reset form data
-    setFormData({
-      protocol: `SF-2024-${String(supplyRequests.length + 1).padStart(3, '0')}`,
-      requester: 'Paulo Roberto Silva',
-      cpf: '123.456.789-00',
-      email: 'paulo.roberto@tjpa.jus.br',
-      department: 'VARA CRIMINAL',
-      municipality: 'Belém',
-      justification: '',
-      limitDate: '',
-      finalDate: '',
-      observations: ''
-    });
-    setExpenses([]);
-    setNewExpense({
-      elementCode: '',
-      description: '',
-      amount: ''
-    });
-  };
-
-  const handleEditRequest = (request: SupplyRequest) => {
-    setCurrentView('form');
-    setEditingRequest(request);
-    setFormData({
-      protocol: request.protocol,
-      requester: request.requester,
-      cpf: '123.456.789-00',
-      email: 'paulo.roberto@tjpa.jus.br',
-      department: request.department,
-      municipality: 'Belém',
-      justification: request.justification || '',
-      limitDate: request.dueDate,
-      finalDate: '',
-      observations: ''
-    });
-    setExpenses([]);
-  };
-
-  const handleBackToList = () => {
-    setCurrentView('list');
-    setEditingRequest(null);
-  };
-
-  const handleSaveRequest = () => {
-    const totalAmount = expenses.reduce((sum, expense) => sum + expense.amount, 0);
-    
-    const requestData: SupplyRequest = {
-      id: editingRequest?.id || Date.now().toString(),
-      protocol: formData.protocol,
-      requester: formData.requester,
-      department: formData.department,
-      totalAmount,
-      status: 'em_elaboracao',
-      priority: 'media',
-      dueDate: formData.limitDate,
-      createdAt: editingRequest?.createdAt || new Date().toISOString().split('T')[0],
-      justification: formData.justification,
-      expenses: expenses.map(exp => ({
-        id: Date.now().toString(),
-        type: exp.elementCode,
-        description: exp.description,
-        date: new Date().toISOString().split('T')[0],
-        amount: exp.amount
+    const message: Message = {
+      id: Date.now().toString(),
+      senderId: user?.id || '',
+      senderName: user?.name || '',
+      senderRole: user?.role || 'suprido',
+      content: newMessage,
+      timestamp: new Date().toISOString(),
+      read: false,
+      attachments: messageAttachments.map(file => ({
+        id: Date.now().toString() + Math.random().toString(36).substr(2, 9),
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        url: URL.createObjectURL(file),
+        uploadedAt: new Date().toISOString(),
+        uploadedBy: user?.name || 'Usuário'
       }))
     };
 
-    if (editingRequest) {
-      setSupplyRequests(prev => prev.map(req => 
-        req.id === editingRequest.id ? requestData : req
-      ));
-    } else {
-      setSupplyRequests(prev => [...prev, requestData]);
-    }
-
-    setCurrentView('list');
-  };
-
-  const handleNewRequestOld = () => {
-    setIsEditing(false);
-    setSelectedRequest(null);
-    setFormDataOld({
-      protocolNumber: generateProtocolNumber(),
-      totalAmount: '0.00',
-      requester: 'Paulo Roberto Silva',
-      cpf: '123.456.789-00',
-      department: 'VARA CRIMINAL',
-      justification: '',
-      dueDate: '',
-      ptres: '',
-      dotacoes: ''
-    });
-    setExpensesOld([]);
-    setCurrentView('form');
-  };
-
-  const handleBackToListOld = () => {
-    setCurrentView('list');
-    setIsEditing(false);
-    setSelectedRequest(null);
-  };
-
-  const handleViewDetails = (request: SupplyRequest) => {
-    setSelectedRequest(request);
-    setShowDetailsModal(true);
-  };
-
-  const handleEditRequestOld = (request: SupplyRequest) => {
-    setIsEditing(true);
-    setSelectedRequest(request);
-    setFormDataOld({
-      protocolNumber: request.protocol,
-      totalAmount: request.totalAmount.toString(),
-      requester: request.requester,
-      cpf: '123.456.789-00',
-      department: request.department,
-      justification: request.justification,
-      dueDate: request.dueDate,
-      ptres: '12345',
-      dotacoes: 'Dotação exemplo'
-    });
-    setExpensesOld(request.expenses);
-    setCurrentView('form');
-  };
-
-  const handleDeleteRequest = (id: string) => {
-    setSupplyRequests(prev => prev.filter(request => request.id !== id));
-    setShowDeleteConfirm(null);
-  };
-
-  const handleSendForAnalysis = (request: SupplyRequest) => {
-    // Atualizar status da solicitação para "em_analise"
-    setSupplyRequests(prev => prev.map(req => 
-      req.id === request.id 
-        ? { ...req, status: 'em_analise' as const }
+    setRequests(prev => prev.map(req => 
+      req.id === requestId 
+        ? { ...req, messages: [...(req.messages || []), message] }
         : req
     ));
 
-    // Aqui você pode implementar a lógica para enviar para a página de análise
-    // Por exemplo, salvar no localStorage ou fazer uma chamada para API
-    const analysisData = {
-      ...request,
-      status: 'em_analise',
-      sentForAnalysisAt: new Date().toISOString()
-    };
+    setNewMessage('');
+    setMessageAttachments([]);
 
-    // Salvar no localStorage para simular o envio para análise
-    const existingAnalysis = JSON.parse(localStorage.getItem('pendingAnalysis') || '[]');
-    existingAnalysis.push(analysisData);
-    localStorage.setItem('pendingAnalysis', JSON.stringify(existingAnalysis));
+    // Simular resposta automática do admin (apenas para demo)
+    if (user?.role !== 'administrador') {
+      setTimeout(() => {
+        const autoReply: Message = {
+          id: Date.now().toString() + '_auto',
+          senderId: 'admin1',
+          senderName: 'Admin Sistema',
+          senderRole: 'administrador',
+          content: 'Mensagem recebida. Retornaremos em breve.',
+          timestamp: new Date().toISOString(),
+          read: false
+        };
 
-    alert('Solicitação enviada para análise com sucesso!');
-  };
-
-  const handleSaveRequestOld = () => {
-    if (!formDataOld.justification || !formDataOld.dueDate || expensesOld.length === 0) {
-      alert('Preencha todos os campos obrigatórios e adicione pelo menos uma despesa');
-      return;
+        setRequests(prev => prev.map(req => 
+          req.id === requestId 
+            ? { ...req, messages: [...(req.messages || []), autoReply] }
+            : req
+        ));
+      }, 2000);
     }
-
-    const requestData: SupplyRequest = {
-      id: selectedRequest?.id || Date.now().toString(),
-      protocol: formDataOld.protocolNumber,
-      requester: formDataOld.requester,
-      department: formDataOld.department,
-      totalAmount: parseFloat(formDataOld.totalAmount),
-      status: 'em_elaboracao',
-      priority: 'media',
-      dueDate: formDataOld.dueDate,
-      createdAt: selectedRequest?.createdAt || new Date().toISOString().split('T')[0],
-      justification: formDataOld.justification,
-      expenses: expensesOld
-    };
-
-    if (isEditing && selectedRequest) {
-      setSupplyRequests(prev => prev.map(req => 
-        req.id === selectedRequest.id ? requestData : req
-      ));
-    } else {
-      setSupplyRequests(prev => [...prev, requestData]);
-    }
-
-    handleBackToListOld();
   };
 
-  // Modal de detalhes
-  const DetailsModal = () => {
-    if (!selectedRequest || !showDetailsModal) return null;
-
-    return (
-      <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
-          <div className="flex items-center justify-between mb-6">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-              Detalhes da Solicitação
-            </h3>
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-            >
-              <X size={24} />
-            </button>
-          </div>
-
-          <div className="space-y-6">
-            {/* Informações Básicas */}
-            <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold text-blue-900 dark:text-blue-100 mb-3">
-                Informações Básicas
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Protocolo:</span>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedRequest.protocol}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Solicitante:</span>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedRequest.requester}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Departamento:</span>
-                  <p className="text-gray-900 dark:text-gray-100">{selectedRequest.department}</p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Valor Total:</span>
-                  <p className="text-green-600 font-bold">
-                    R$ {selectedRequest.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            {/* Status */}
-            <div className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-3">
-                Status e Prioridade
-              </h4>
-              <div className="flex items-center space-x-4">
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedRequest.status)}`}>
-                  {getStatusLabel(selectedRequest.status)}
-                </span>
-                <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedRequest.priority)}`}>
-                  {getPriorityLabel(selectedRequest.priority)}
-                </span>
-              </div>
-            </div>
-
-            {/* Justificativa */}
-            <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold text-yellow-900 dark:text-yellow-100 mb-3">
-                Justificativa
-              </h4>
-              <p className="text-gray-700 dark:text-gray-300">{selectedRequest.justification}</p>
-            </div>
-
-            {/* Elementos de Despesa */}
-            <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold text-green-900 dark:text-green-100 mb-3">
-                Elementos de Despesa ({selectedRequest.expenses.length})
-              </h4>
-              <div className="space-y-2">
-                {selectedRequest.expenses.map((expense, index) => (
-                  <div key={expense.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-800 rounded border">
-                    <div>
-                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{expense.description}</span>
-                      <p className="text-xs text-gray-500 dark:text-gray-400">{expense.type} - {expense.date}</p>
-                    </div>
-                    <span className="text-sm font-bold text-green-600">
-                      R$ {expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* Cronograma */}
-            <div className="bg-purple-50 dark:bg-purple-900/20 p-4 rounded-lg">
-              <h4 className="text-lg font-semibold text-purple-900 dark:text-purple-100 mb-3">
-                Cronograma
-              </h4>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Data de Criação:</span>
-                  <p className="text-gray-900 dark:text-gray-100">
-                    {new Date(selectedRequest.createdAt).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-                <div>
-                  <span className="text-sm font-medium text-gray-700 dark:text-gray-300">Prazo de Utilização:</span>
-                  <p className="text-gray-900 dark:text-gray-100">
-                    {new Date(selectedRequest.dueDate).toLocaleDateString('pt-BR')}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="flex justify-end space-x-3 mt-6">
-            <button
-              onClick={() => setShowDetailsModal(false)}
-              className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
-            >
-              Fechar
-            </button>
-            <button
-              onClick={() => {
-                setShowDetailsModal(false);
-                handleEditRequest(selectedRequest);
-              }}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Editar Solicitação
-            </button>
-          </div>
-        </div>
-      </div>
-    );
+  // Marcar alertas como lidos
+  const markAlertAsRead = (requestId: string, alertId: string) => {
+    setRequests(prev => prev.map(req => 
+      req.id === requestId 
+        ? { 
+            ...req, 
+            alerts: req.alerts?.map(alert => 
+              alert.id === alertId ? { ...alert, read: true } : alert
+            ) 
+          }
+        : req
+    ));
   };
 
-  // Render form view
-  if (currentView === 'form') {
-    return (
-      <div className="space-y-6">
-        {/* Header */}
-        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-3">
-              <button
-                onClick={handleBackToList}
-                className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-              >
-                ← Voltar ao Dashboard
-              </button>
-            </div>
-            <button
-              onClick={handleSaveRequest}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              Salvar
-            </button>
+  // Estatísticas
+  const stats = {
+    total: filteredRequests.length,
+    pendente: filteredRequests.filter(r => r.status === 'pendente').length,
+    em_analise: filteredRequests.filter(r => r.status === 'em_analise').length,
+    aprovado: filteredRequests.filter(r => r.status === 'aprovado').length,
+    rejeitado: filteredRequests.filter(r => r.status === 'rejeitado').length,
+    totalAmount: filteredRequests.reduce((sum, r) => sum + r.totalAmount, 0),
+    unreadAlerts: filteredRequests.reduce((sum, r) => sum + (r.alerts?.filter(a => !a.read).length || 0), 0),
+    unreadMessages: filteredRequests.reduce((sum, r) => sum + (r.messages?.filter(m => !m.read && m.senderId !== user?.id).length || 0), 0)
+  };
+
+  return (
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+            <DollarSign size={24} className="text-blue-600" />
           </div>
-          
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {editingRequest ? 'Editar Solicitação' : 'Suprimento de Fundos'}
+              {user?.role === 'administrador' ? 'Gestão de Suprimento de Fundos' : 'Minhas Solicitações de Suprimento'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400">
-              {editingRequest ? 'Edite sua solicitação de suprimento de fundos' : 'Gerencie suas solicitações de suprimento de fundos'}
+              {user?.role === 'administrador' 
+                ? 'Analise e gerencie todas as solicitações de suprimento de fundos' 
+                : 'Acompanhe suas solicitações e comunique-se com os administradores'}
             </p>
           </div>
         </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4 border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Valor Solicitado</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">
-                  R$ {expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                </p>
-              </div>
-              <DollarSign size={24} className="text-blue-600" />
-            </div>
-          </div>
+        <div className="flex items-center space-x-3">
+          {/* Alertas */}
+          {stats.unreadAlerts > 0 && (
+            <button
+              onClick={() => setShowAlertsModal(true)}
+              className="relative flex items-center px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              <Bell size={16} className="mr-2" />
+              Alertas
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {stats.unreadAlerts}
+              </span>
+            </button>
+          )}
 
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 rounded-lg p-4 border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium mb-1">Itens Solicitados</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{expenses.length}</p>
-              </div>
-              <FileText size={24} className="text-yellow-600" />
-            </div>
-          </div>
+          {/* Mensagens */}
+          {stats.unreadMessages > 0 && (
+            <button
+              onClick={() => setShowMessagesModal(true)}
+              className="relative flex items-center px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+            >
+              <MessageSquare size={16} className="mr-2" />
+              Mensagens
+              <span className="absolute -top-2 -right-2 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+                {stats.unreadMessages}
+              </span>
+            </button>
+          )}
 
-          <div className="bg-green-50 dark:bg-green-900/20 rounded-lg p-4 border border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Status Solicitação</p>
-                <p className="text-lg font-bold text-green-900 dark:text-green-100">
-                  {editingRequest ? 'Em Edição' : 'Rascunho'}
-                </p>
-              </div>
-              <CheckCircle size={24} className="text-green-600" />
-            </div>
-          </div>
-
-          <div className="bg-purple-50 dark:bg-purple-900/20 rounded-lg p-4 border border-purple-200 dark:border-purple-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-purple-600 dark:text-purple-400 font-medium mb-1">Valor Disponível</p>
-                <p className="text-2xl font-bold text-purple-900 dark:text-purple-100">R$ 5.500,00</p>
-              </div>
-              <BarChart3 size={24} className="text-purple-600" />
-            </div>
-          </div>
-        </div>
-
-        {/* Form Content */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Main Form */}
-          <div className="lg:col-span-2 space-y-6">
-            {/* Nova Solicitação */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="bg-blue-600 text-white px-6 py-4 rounded-t-lg flex items-center">
-                <Plus size={20} className="mr-2" />
-                <div>
-                  <h2 className="text-lg font-semibold">Nova Solicitação</h2>
-                  <p className="text-blue-100 text-sm">Preencha os dados da solicitação de suprimento de fundos</p>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-6">
-                {/* Dados da Solicitação */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Dados da Solicitação</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Solicitante *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.requester}
-                        onChange={(e) => setFormData({...formData, requester: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Nome do solicitante"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        CPF *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.cpf}
-                        onChange={(e) => setFormData({...formData, cpf: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="000.000.000-00"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Email *
-                      </label>
-                      <input
-                        type="email"
-                        value={formData.email}
-                        onChange={(e) => setFormData({...formData, email: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="email@tjpa.jus.br"
-                      />
-                    </div>
-                  </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Telefone *
-                      </label>
-                      <input
-                        type="text"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="(91) 99999-9999"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Departamento *
-                      </label>
-                      <input
-                        type="text"
-                        value={formData.department}
-                        onChange={(e) => setFormData({...formData, department: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                        placeholder="Departamento"
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Município *
-                    </label>
-                    <select
-                      value={formData.municipality}
-                      onChange={(e) => setFormData({...formData, municipality: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="">Selecione o município</option>
-                      <option value="Belém">Belém</option>
-                      <option value="Santarém">Santarém</option>
-                      <option value="Marabá">Marabá</option>
-                      <option value="Castanhal">Castanhal</option>
-                      <option value="Altamira">Altamira</option>
-                    </select>
-                  </div>
-                </div>
-
-                {/* Período de Utilização */}
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Período de Utilização</h3>
-                  
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Data Inicial *
-                      </label>
-                      <input
-                        type="date"
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                    
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Data Final *
-                      </label>
-                      <input
-                        type="date"
-                        value={formData.finalDate}
-                        onChange={(e) => setFormData({...formData, finalDate: e.target.value})}
-                        className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      />
-                    </div>
-                  </div>
-                </div>
-
-                {/* Justificativa */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Justificativa *
-                  </label>
-                  <textarea
-                    value={formData.justification}
-                    onChange={(e) => setFormData({...formData, justification: e.target.value})}
-                    rows={4}
-                    className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    placeholder="Descreva a justificativa para a solicitação de suprimento de fundos"
-                  />
-                </div>
-              </div>
-            </div>
-
-            {/* Elementos de Despesa */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-              <div className="bg-green-600 text-white px-6 py-4 rounded-t-lg flex items-center">
-                <Plus size={20} className="mr-2" />
-                <div>
-                  <h2 className="text-lg font-semibold">Elementos de Despesa</h2>
-                  <p className="text-green-100 text-sm">Adicione os elementos de despesa da solicitação</p>
-                </div>
-              </div>
-              
-              <div className="p-6 space-y-4">
-                {/* Add New Expense */}
-                <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-                  <div className="md:col-span-4">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Código do Elemento
-                    </label>
-                    <select
-                      value={newExpense.elementCode}
-                      onChange={(e) => setNewExpense({...newExpense, elementCode: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                    >
-                      <option value="">Selecione</option>
-                      <option value="3.3.90.30.96.01">3.3.90.30.96.01</option>
-                      <option value="3.3.90.30.96.02">3.3.90.30.96.02</option>
-                      <option value="3.3.90.33.96">3.3.90.33.96</option>
-                      <option value="3.3.90.36.96">3.3.90.36.96</option>
-                      <option value="3.3.90.39.96">3.3.90.39.96</option>
-                    </select>
-                  </div>
-                  
-                  <div className="md:col-span-5">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Descrição
-                    </label>
-                    <input
-                      type="text"
-                      value={newExpense.description}
-                      onChange={(e) => setNewExpense({...newExpense, description: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder="Descrição do elemento"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                      Valor (R$)
-                    </label>
-                    <input
-                      type="number"
-                      step="0.01"
-                      value={newExpense.amount}
-                      onChange={(e) => setNewExpense({...newExpense, amount: e.target.value})}
-                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                      placeholder="0,00"
-                    />
-                  </div>
-                  
-                  <div className="md:col-span-1">
-                    <button
-                      onClick={addExpense}
-                      className="w-full px-3 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center justify-center"
-                    >
-                      <Plus size={16} />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Total */}
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <div className="flex justify-between items-center">
-                    <span className="text-lg font-semibold text-blue-900 dark:text-blue-100">Total da Solicitação:</span>
-                    <span className="text-2xl font-bold text-blue-600">
-                      R$ {expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                    </span>
-                  </div>
-                </div>
-
-                {/* Action Buttons */}
-                <div className="flex justify-end space-x-3">
-                  <button
-                    onClick={handleBackToList}
-                    className="px-6 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveRequest}
-                    className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-                  >
-                    Criar Solicitação
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Sidebar */}
-          <div className="space-y-6">
-            {/* Resumo */}
-            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Resumo</h3>
-              <div className="space-y-3">
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Protocolo:</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{formData.protocol}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Itens:</span>
-                  <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{expenses.length}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-sm text-gray-600 dark:text-gray-400">Total:</span>
-                  <span className="text-sm font-bold text-green-600">
-                    R$ {expenses.reduce((sum, exp) => sum + exp.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Expenses List */}
-        {expenses.length > 0 && (
-          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
-            <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Lista de Solicitações</h3>
-              <p className="text-sm text-gray-600 dark:text-gray-400">Elementos de despesa adicionados à solicitação</p>
-            </div>
-            
-            <div className="overflow-x-auto">
-              <table className="w-full">
-                <thead className="bg-gray-50 dark:bg-gray-700">
-                  <tr>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Protocolo
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Solicitante
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Departamento
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Município
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Valor Total
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Status
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Prioridade
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-                      Ações
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
-                  {expenses.map((expense, index) => (
-                    <tr key={index} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                        {expense.elementCode}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        {expense.description}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        R$ {expense.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        -
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                        -
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-yellow-100 text-yellow-800">
-                          Rascunho
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex px-2 py-1 text-xs font-semibold rounded-full bg-blue-100 text-blue-800">
-                          Média
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
-                        <button
-                          onClick={() => removeExpense(index)}
-                          className="text-red-600 hover:text-red-900"
-                          title="Remover"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        )}
-      </div>
-    );
-  }
-
-  // Render list view
-  return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Suprimento de Fundos</h1>
-            <p className="text-gray-600 dark:text-gray-400">Gerencie suas solicitações de suprimento de fundos</p>
-          </div>
           <button
-            onClick={handleNewRequest}
+            onClick={() => {
+              setSelectedRequest(null);
+              setIsEditing(false);
+              setShowRequestModal(true);
+            }}
             className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
           >
             <Plus size={16} className="mr-2" />
             Nova Solicitação
           </button>
         </div>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-          <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-blue-600 dark:text-blue-400 font-medium mb-1">Total</p>
-                <p className="text-2xl font-bold text-blue-900 dark:text-blue-100">{stats.total}</p>
-              </div>
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total de Solicitações</p>
+              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+            </div>
+            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
               <FileText size={24} className="text-blue-600" />
-            </div>
-          </div>
-
-          <div className="bg-yellow-50 dark:bg-yellow-900/20 p-4 rounded-lg border border-yellow-200 dark:border-yellow-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-yellow-600 dark:text-yellow-400 font-medium mb-1">Em Elaboração</p>
-                <p className="text-2xl font-bold text-yellow-900 dark:text-yellow-100">{stats.inProgress}</p>
-              </div>
-              <Edit size={24} className="text-yellow-600" />
-            </div>
-          </div>
-
-          <div className="bg-orange-50 dark:bg-orange-900/20 p-4 rounded-lg border border-orange-200 dark:border-orange-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-orange-600 dark:text-orange-400 font-medium mb-1">Pendentes</p>
-                <p className="text-2xl font-bold text-orange-900 dark:text-orange-100">{stats.pending}</p>
-              </div>
-              <Clock size={24} className="text-orange-600" />
-            </div>
-          </div>
-
-          <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-200 dark:border-green-800">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-sm text-green-600 dark:text-green-400 font-medium mb-1">Aprovadas</p>
-                <p className="text-2xl font-bold text-green-900 dark:text-green-100">{stats.approved}</p>
-              </div>
-              <CheckCircle size={24} className="text-green-600" />
             </div>
           </div>
         </div>
 
-        {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4 mb-6">
-          <div className="flex-1 relative">
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Valor Total</p>
+              <p className="text-2xl font-bold text-green-600">{formatCurrency(stats.totalAmount)}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+              <DollarSign size={24} className="text-green-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Em Análise</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.em_analise}</p>
+            </div>
+            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+              <Clock size={24} className="text-orange-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Aprovadas</p>
+              <p className="text-2xl font-bold text-green-600">{stats.aprovado}</p>
+            </div>
+            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+              <CheckCircle size={24} className="text-green-600" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
             <input
               type="text"
-              placeholder="Buscar por protocolo, nome..."
+              placeholder="Buscar por protocolo, nome ou justificativa..."
               className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
-          <select
-            className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-          >
-            <option value="all">Todos os Status</option>
-            <option value="rascunho">Rascunho</option>
-            <option value="em_elaboracao">Em Elaboração</option>
-            <option value="enviada">Enviada</option>
-            <option value="em_analise">Em Análise</option>
-            <option value="aprovada">Aprovada</option>
-            <option value="rejeitada">Rejeitada</option>
-          </select>
+          <div>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+            >
+              <option value="all">Todos os Status</option>
+              <option value="pendente">Pendente</option>
+              <option value="em_analise">Em Análise</option>
+              <option value="aprovado">Aprovado</option>
+              <option value="rejeitado">Rejeitado</option>
+              <option value="cancelado">Cancelado</option>
+            </select>
+          </div>
 
-          <button className="flex items-center px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
-            <Filter size={16} className="mr-2" />
-            Filtros Avançados
-          </button>
+          <div>
+            <select
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              value={priorityFilter}
+              onChange={(e) => setPriorityFilter(e.target.value)}
+            >
+              <option value="all">Todas as Prioridades</option>
+              <option value="baixa">Baixa</option>
+              <option value="media">Média</option>
+              <option value="alta">Alta</option>
+              <option value="urgente">Urgente</option>
+            </select>
+          </div>
+
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => {
+                setSearchTerm('');
+                setStatusFilter('all');
+                setPriorityFilter('all');
+              }}
+              className="flex items-center px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors"
+            >
+              <RefreshCw size={16} className="mr-2" />
+              Limpar
+            </button>
+          </div>
         </div>
+      </div>
 
-        {/* Table */}
+      {/* Requests Table */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
@@ -1196,6 +663,9 @@ const SupplyFundsModule: React.FC = () => {
                   Prioridade
                 </th>
                 <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                  Alertas
+                </th>
+                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
@@ -1203,59 +673,100 @@ const SupplyFundsModule: React.FC = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredRequests.map((request) => (
                 <tr key={request.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-gray-100">
-                    {request.protocol}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center">
+                      <div>
+                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.protocol}</div>
+                        <div className="text-sm text-gray-500 dark:text-gray-400">
+                          {new Date(request.createdAt).toLocaleDateString('pt-BR')}
+                        </div>
+                      </div>
+                      {request.attachments && request.attachments.length > 0 && (
+                        <Paperclip size={14} className="ml-2 text-gray-400" />
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>
-                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.requester}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">{request.department}</div>
+                      <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{request.requesterName}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-400">{request.requesterDepartment}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
-                    R$ {request.totalAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                      {formatCurrency(request.totalAmount)}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(request.status)}`}>
-                      {getStatusLabel(request.status)}
+                      {request.status.replace('_', ' ').toUpperCase()}
                     </span>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(request.priority)}`}>
-                      {getPriorityLabel(request.priority)}
+                      {request.priority.toUpperCase()}
                     </span>
+                  </td>
+                  <td className="px-6 py-4 whitespace-nowrap">
+                    <div className="flex items-center space-x-2">
+                      {request.alerts && request.alerts.filter(a => !a.read).length > 0 && (
+                        <div className="flex items-center">
+                          <Bell size={16} className="text-orange-500 mr-1" />
+                          <span className="text-sm text-orange-600">
+                            {request.alerts.filter(a => !a.read).length}
+                          </span>
+                        </div>
+                      )}
+                      {request.messages && request.messages.filter(m => !m.read && m.senderId !== user?.id).length > 0 && (
+                        <div className="flex items-center">
+                          <MessageSquare size={16} className="text-blue-500 mr-1" />
+                          <span className="text-sm text-blue-600">
+                            {request.messages.filter(m => !m.read && m.senderId !== user?.id).length}
+                          </span>
+                        </div>
+                      )}
+                    </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
                     <button
-                      onClick={() => handleViewDetails(request)}
+                      onClick={() => setSelectedRequest(request)}
                       className="text-blue-600 hover:text-blue-900"
                       title="Ver detalhes"
                     >
                       <Eye size={16} />
                     </button>
-                    <button
-                      onClick={() => handleEditRequest(request)}
-                      className="text-green-600 hover:text-green-900"
-                      title="Editar"
-                    >
-                      <Edit size={16} />
-                    </button>
-                    {request.status === 'em_elaboracao' && (
+                    {(user?.role === 'administrador' || request.requesterId === user?.id) && (
                       <button
-                        onClick={() => handleSendForAnalysis(request)}
-                        className="text-purple-600 hover:text-purple-900"
-                        title="Enviar para análise"
+                        onClick={() => {
+                          setSelectedRequest(request);
+                          setIsEditing(true);
+                          setShowRequestModal(true);
+                        }}
+                        className="text-green-600 hover:text-green-900"
+                        title="Editar"
                       >
-                        <Send size={16} />
+                        <Edit size={16} />
                       </button>
                     )}
                     <button
-                      onClick={() => setShowDeleteConfirm(request.id)}
-                      className="text-red-600 hover:text-red-900"
-                      title="Excluir"
+                      onClick={() => {
+                        setSelectedRequest(request);
+                        setShowMessagesModal(true);
+                      }}
+                      className="text-purple-600 hover:text-purple-900"
+                      title="Mensagens"
                     >
-                      <Trash2 size={16} />
+                      <MessageSquare size={16} />
                     </button>
+                    {user?.role === 'administrador' && (
+                      <button
+                        onClick={() => setShowDeleteConfirm(request.id)}
+                        className="text-red-600 hover:text-red-900"
+                        title="Excluir"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}
@@ -1265,53 +776,450 @@ const SupplyFundsModule: React.FC = () => {
 
         {filteredRequests.length === 0 && (
           <div className="text-center py-12">
-            <FileText size={48} className="mx-auto text-gray-300 dark:text-gray-600 mb-4" />
+            <FileText size={48} className="mx-auto text-gray-300 mb-4" />
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Nenhuma solicitação encontrada</h3>
-            <p className="text-gray-500 dark:text-gray-400 mb-4">
-              {searchTerm || statusFilter !== 'all'
+            <p className="text-gray-500 dark:text-gray-400">
+              {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
                 ? 'Tente ajustar os filtros de busca.' 
                 : 'Não há solicitações cadastradas no momento.'}
             </p>
-            <button
-              onClick={handleNewRequest}
-              className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={16} className="mr-2" />
-              Nova Solicitação
-            </button>
           </div>
         )}
       </div>
-      
-      {/* Modal de Detalhes */}
-      <DetailsModal />
 
-      {/* Modal de Confirmação de Exclusão */}
-      {showDeleteConfirm && (
+      {/* Request Details Modal */}
+      {selectedRequest && !showRequestModal && !showMessagesModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
-            <div className="flex items-center mb-4">
-              <AlertTriangle size={24} className="text-red-600 mr-3" />
-              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Confirmar Exclusão</h3>
-            </div>
-            
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.
-            </p>
-
-            <div className="flex justify-end space-x-3">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-4xl max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Detalhes da Solicitação - {selectedRequest.protocol}
+              </h3>
               <button
-                onClick={() => setShowDeleteConfirm(null)}
+                onClick={() => setSelectedRequest(null)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Informações Básicas */}
+              <div className="space-y-4">
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Informações Básicas</h4>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-3">
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Protocolo:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedRequest.protocol}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Solicitante:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedRequest.requesterName}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Departamento:</span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100">{selectedRequest.requesterDepartment}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Valor Total:</span>
+                      <span className="text-sm font-medium text-green-600">{formatCurrency(selectedRequest.totalAmount)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Status:</span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusColor(selectedRequest.status)}`}>
+                        {selectedRequest.status.replace('_', ' ').toUpperCase()}
+                      </span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Prioridade:</span>
+                      <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getPriorityColor(selectedRequest.priority)}`}>
+                        {selectedRequest.priority.toUpperCase()}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Justificativa</h4>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    <p className="text-sm text-gray-900 dark:text-gray-100">{selectedRequest.justification}</p>
+                  </div>
+                </div>
+
+                {selectedRequest.technicalOpinion && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Parecer Técnico</h4>
+                    <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-4">
+                      <p className="text-sm text-blue-900 dark:text-blue-100">{selectedRequest.technicalOpinion}</p>
+                      {selectedRequest.analyzedBy && (
+                        <p className="text-xs text-blue-600 dark:text-blue-400 mt-2">
+                          Por: {selectedRequest.analyzedBy} em {new Date(selectedRequest.analysisDate!).toLocaleString('pt-BR')}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Anexos e Comunicação */}
+              <div className="space-y-4">
+                {/* Anexos */}
+                <div>
+                  <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Anexos ({selectedRequest.attachments?.length || 0})
+                  </h4>
+                  <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4">
+                    {selectedRequest.attachments && selectedRequest.attachments.length > 0 ? (
+                      <div className="space-y-2">
+                        {selectedRequest.attachments.map((file) => (
+                          <div key={file.id} className="flex items-center justify-between p-2 bg-white dark:bg-gray-600 rounded border">
+                            <div className="flex items-center space-x-2">
+                              {getFileIcon(file.type)}
+                              <div>
+                                <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{file.name}</p>
+                                <p className="text-xs text-gray-500 dark:text-gray-400">
+                                  {formatFileSize(file.size)} • {new Date(file.uploadedAt).toLocaleDateString('pt-BR')}
+                                </p>
+                              </div>
+                            </div>
+                            <button
+                              onClick={() => window.open(file.url, '_blank')}
+                              className="text-blue-600 hover:text-blue-800"
+                              title="Visualizar arquivo"
+                            >
+                              <ExternalLink size={16} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-gray-500 dark:text-gray-400 text-center py-4">
+                        Nenhum anexo disponível
+                      </p>
+                    )}
+
+                    {/* Upload Area */}
+                    <div
+                      className={`mt-4 border-2 border-dashed rounded-lg p-4 text-center transition-colors ${
+                        dragOver 
+                          ? 'border-blue-400 bg-blue-50 dark:bg-blue-900/20' 
+                          : 'border-gray-300 dark:border-gray-600'
+                      }`}
+                      onDragOver={handleDragOver}
+                      onDragLeave={handleDragLeave}
+                      onDrop={(e) => handleDrop(e, selectedRequest.id)}
+                    >
+                      <Upload size={24} className="mx-auto text-gray-400 mb-2" />
+                      <p className="text-sm text-gray-600 dark:text-gray-400">
+                        Arraste arquivos aqui ou{' '}
+                        <label className="text-blue-600 hover:text-blue-800 cursor-pointer">
+                          clique para selecionar
+                          <input
+                            type="file"
+                            multiple
+                            className="hidden"
+                            onChange={(e) => e.target.files && handleFileUpload(e.target.files, selectedRequest.id)}
+                          />
+                        </label>
+                      </p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        PDF, DOC, XLS, JPG, PNG (máx. 10MB)
+                      </p>
+                    </div>
+
+                    {/* Upload Progress */}
+                    {Object.keys(uploadProgress).length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {Object.entries(uploadProgress).map(([fileId, progress]) => (
+                          <div key={fileId} className="bg-white dark:bg-gray-600 rounded p-2">
+                            <div className="flex justify-between text-sm mb-1">
+                              <span className="text-gray-700 dark:text-gray-300">Enviando...</span>
+                              <span className="text-gray-500 dark:text-gray-400">{progress}%</span>
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                              <div 
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                                style={{ width: `${progress}%` }}
+                              ></div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Alertas Recentes */}
+                {selectedRequest.alerts && selectedRequest.alerts.length > 0 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Alertas Recentes
+                    </h4>
+                    <div className="bg-gray-50 dark:bg-gray-700 rounded-lg p-4 space-y-2">
+                      {selectedRequest.alerts.slice(0, 3).map((alert) => (
+                        <div 
+                          key={alert.id} 
+                          className={`p-3 rounded border-l-4 ${
+                            alert.type === 'success' ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
+                            alert.type === 'warning' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' :
+                            alert.type === 'error' ? 'border-red-400 bg-red-50 dark:bg-red-900/20' :
+                            'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                          }`}
+                        >
+                          <div className="flex items-start justify-between">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 dark:text-gray-100">{alert.title}</p>
+                              <p className="text-sm text-gray-600 dark:text-gray-400">{alert.message}</p>
+                              <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                {new Date(alert.timestamp).toLocaleString('pt-BR')}
+                              </p>
+                            </div>
+                            {!alert.read && (
+                              <button
+                                onClick={() => markAlertAsRead(selectedRequest.id, alert.id)}
+                                className="text-blue-600 hover:text-blue-800 text-xs"
+                              >
+                                Marcar como lido
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end space-x-3 mt-6">
+              <button
+                onClick={() => setSelectedRequest(null)}
                 className="px-4 py-2 text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 rounded-lg hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
               >
-                Cancelar
+                Fechar
               </button>
               <button
-                onClick={() => handleDeleteRequest(showDeleteConfirm)}
-                className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                onClick={() => {
+                  setSelectedRequest(selectedRequest);
+                  setShowMessagesModal(true);
+                }}
+                className="px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 transition-colors flex items-center"
               >
-                Excluir
+                <MessageSquare size={16} className="mr-2" />
+                Mensagens
               </button>
+              {(user?.role === 'administrador' || selectedRequest.requesterId === user?.id) && (
+                <button
+                  onClick={() => {
+                    setIsEditing(true);
+                    setShowRequestModal(true);
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <Edit size={16} className="mr-2" />
+                  Editar
+                </button>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Messages Modal */}
+      {showMessagesModal && selectedRequest && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[80vh] flex flex-col">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Mensagens - {selectedRequest.protocol}
+              </h3>
+              <button
+                onClick={() => setShowMessagesModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            {/* Messages List */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              {selectedRequest.messages && selectedRequest.messages.length > 0 ? (
+                selectedRequest.messages.map((message) => (
+                  <div 
+                    key={message.id} 
+                    className={`flex ${message.senderId === user?.id ? 'justify-end' : 'justify-start'}`}
+                  >
+                    <div className={`max-w-xs lg:max-w-md px-4 py-2 rounded-lg ${
+                      message.senderId === user?.id 
+                        ? 'bg-blue-600 text-white' 
+                        : 'bg-gray-100 dark:bg-gray-700 text-gray-900 dark:text-gray-100'
+                    }`}>
+                      <div className="flex items-center justify-between mb-1">
+                        <span className="text-xs font-medium">
+                          {message.senderName}
+                        </span>
+                        <span className={`text-xs ${
+                          message.senderId === user?.id ? 'text-blue-100' : 'text-gray-500 dark:text-gray-400'
+                        }`}>
+                          {new Date(message.timestamp).toLocaleString('pt-BR')}
+                        </span>
+                      </div>
+                      <p className="text-sm">{message.content}</p>
+                      {message.attachments && message.attachments.length > 0 && (
+                        <div className="mt-2 space-y-1">
+                          {message.attachments.map((file) => (
+                            <div key={file.id} className="flex items-center space-x-2 text-xs">
+                              {getFileIcon(file.type)}
+                              <span>{file.name}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <MessageSquare size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhuma mensagem ainda</p>
+                </div>
+              )}
+            </div>
+
+            {/* Message Input */}
+            <div className="border-t border-gray-200 dark:border-gray-700 p-6">
+              <div className="space-y-3">
+                {/* File attachments preview */}
+                {messageAttachments.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {messageAttachments.map((file, index) => (
+                      <div key={index} className="flex items-center space-x-2 bg-gray-100 dark:bg-gray-700 rounded px-2 py-1">
+                        {getFileIcon(file.type)}
+                        <span className="text-xs text-gray-700 dark:text-gray-300">{file.name}</span>
+                        <button
+                          onClick={() => setMessageAttachments(prev => prev.filter((_, i) => i !== index))}
+                          className="text-red-500 hover:text-red-700"
+                        >
+                          <X size={12} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="flex space-x-2">
+                  <div className="flex-1 relative">
+                    <textarea
+                      value={newMessage}
+                      onChange={(e) => setNewMessage(e.target.value)}
+                      placeholder="Digite sua mensagem..."
+                      className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 resize-none"
+                      rows={2}
+                    />
+                  </div>
+                  <div className="flex flex-col space-y-2">
+                    <label className="flex items-center justify-center w-10 h-10 bg-gray-100 dark:bg-gray-700 rounded-lg cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors">
+                      <Paperclip size={16} className="text-gray-600 dark:text-gray-400" />
+                      <input
+                        type="file"
+                        multiple
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files) {
+                            setMessageAttachments(prev => [...prev, ...Array.from(e.target.files!)]);
+                          }
+                        }}
+                      />
+                    </label>
+                    <button
+                      onClick={() => sendMessage(selectedRequest.id)}
+                      disabled={!newMessage.trim()}
+                      className="flex items-center justify-center w-10 h-10 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    >
+                      <Send size={16} />
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Alerts Modal */}
+      {showAlertsModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg w-full max-w-2xl max-h-[80vh] overflow-y-auto">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200 dark:border-gray-700">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                Alertas do Sistema
+              </h3>
+              <button
+                onClick={() => setShowAlertsModal(false)}
+                className="text-gray-400 hover:text-gray-600"
+              >
+                <X size={24} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {requests.flatMap(req => req.alerts || []).filter(alert => !alert.read).length > 0 ? (
+                requests.flatMap(req => 
+                  (req.alerts || []).filter(alert => !alert.read).map(alert => ({
+                    ...alert,
+                    requestProtocol: req.protocol,
+                    requestId: req.id
+                  }))
+                ).map((alert) => (
+                  <div 
+                    key={alert.id} 
+                    className={`p-4 rounded-lg border-l-4 ${
+                      alert.type === 'success' ? 'border-green-400 bg-green-50 dark:bg-green-900/20' :
+                      alert.type === 'warning' ? 'border-yellow-400 bg-yellow-50 dark:bg-yellow-900/20' :
+                      alert.type === 'error' ? 'border-red-400 bg-red-50 dark:bg-red-900/20' :
+                      'border-blue-400 bg-blue-50 dark:bg-blue-900/20'
+                    }`}
+                  >
+                    <div className="flex items-start justify-between">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-2 mb-1">
+                          <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                            alert.priority === 'alta' ? 'bg-red-100 text-red-800' :
+                            alert.priority === 'media' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-gray-100 text-gray-800'
+                          }`}>
+                            {alert.priority.toUpperCase()}
+                          </span>
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
+                            {alert.requestProtocol}
+                          </span>
+                        </div>
+                        <h4 className="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
+                          {alert.title}
+                        </h4>
+                        <p className="text-sm text-gray-600 dark:text-gray-400 mb-2">
+                          {alert.message}
+                        </p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                          {new Date(alert.timestamp).toLocaleString('pt-BR')}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => markAlertAsRead(alert.requestId, alert.id)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium ml-4"
+                      >
+                        Marcar como lido
+                      </button>
+                    </div>
+                  </div>
+                ))
+              ) : (
+                <div className="text-center py-8">
+                  <Bell size={48} className="mx-auto text-gray-300 mb-4" />
+                  <p className="text-gray-500 dark:text-gray-400">Nenhum alerta pendente</p>
+                </div>
+              )}
             </div>
           </div>
         </div>
