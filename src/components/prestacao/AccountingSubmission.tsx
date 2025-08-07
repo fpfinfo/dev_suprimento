@@ -73,6 +73,7 @@ interface ServiceProvider {
   pisNit: string;
   fatherName: string;
   motherName: string;
+  municipio: string;
   documents: File[];
 }
 
