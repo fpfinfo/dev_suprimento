@@ -16,7 +16,6 @@ import {
   Calculator,
   Calendar,
   MapPin,
-  Building,
   Phone,
   Mail,
   User,
