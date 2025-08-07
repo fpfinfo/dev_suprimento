@@ -208,7 +208,7 @@ const SupplyFundsModule: React.FC = () => {
   const [newElemento, setNewElemento] = useState({
     codigo: '',
     descricao: '',
-    valor: '',
+    valor: number,
     justificativa: ''
   });
 
