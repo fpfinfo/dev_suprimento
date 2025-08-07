@@ -123,6 +123,7 @@ const AccountingSubmission: React.FC = () => {
     birthDate: '',
     pisNit: '',
     fatherName: '',
+    municipio: '',
     motherName: '',
     documents: []
   });
