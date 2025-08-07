@@ -45,12 +45,35 @@ import {
   XCircle,
   History,
   UserCheck
+  MessageSquare,
+  Bell,
+  Send,
+  Paperclip,
+  CreditCard,
+  Calculator,
+  AlertTriangle,
+  Info,
+  CheckCircle2,
+  XCircle,
+  History,
+  UserCheck
 } from 'lucide-react';
 
 interface SolicitacaoSuprimento {
   id: string;
   numeroProtocolo: string;
   solicitante: string;
+  cpf: string;
+  telefone: string;
+  email: string;
+  departamento: string;
+  municipio: string;
+  gestor: string;
+  dadosBancarios: {
+    banco: string;
+    agencia: string;
+    conta: string;
+  };
   cpf: string;
   telefone: string;
   email: string;
@@ -80,6 +103,9 @@ interface SolicitacaoSuprimento {
   prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
   criadoEm: string;
   elementos: ElementoDespesa[];
+  documentos: DocumentoAnexo[];
+  mensagens: Mensagem[];
+  notificacoes: Notificacao[];
   documentos: DocumentoAnexo[];
   mensagens: Mensagem[];
   notificacoes: Notificacao[];
@@ -150,12 +176,42 @@ interface Notificacao {
   lida: boolean;
   prioridade: 'alta' | 'media' | 'baixa';
 }
+interface DocumentoAnexo {
+  id: string;
+  nome: string;
+  tipo: string;
+  tamanho: number;
+  dataUpload: string;
+}
+
+interface Mensagem {
+  id: string;
+  remetente: string;
+  destinatario: string;
+  conteudo: string;
+  dataEnvio: string;
+  lida: boolean;
+  tipo: 'sistema' | 'usuario';
+}
+
+interface Notificacao {
+  id: string;
+  tipo: 'aprovacao' | 'rejeicao' | 'pendencia' | 'prazo';
+  titulo: string;
+  mensagem: string;
+  data: string;
+  lida: boolean;
+  prioridade: 'alta' | 'media' | 'baixa';
+}
 
 const SupplyFundsModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [priorityFilter, setPriorityFilter] = useState('all');
   const [showModal, setShowModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showMessages, setShowMessages] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
