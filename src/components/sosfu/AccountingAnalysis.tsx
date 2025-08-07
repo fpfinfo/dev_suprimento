@@ -12,7 +12,8 @@ import {
   DollarSign,
   TrendingUp,
   CheckCircle,
-  Users,
+  Building,
+  Calculator
   Calendar,
   MapPin,
   Building,
@@ -29,6 +30,7 @@ import {
   XCircle,
   BarChart3
 } from 'lucide-react';
+import INSSAnalysis from './INSSAnalysis';
 
 interface AccountingRecord {
   id: string;
@@ -93,6 +95,7 @@ const AccountingAnalysis: React.FC = () => {
   const [showAnalysisView, setShowAnalysisView] = useState(false);
   const [currentAnalysisRecord, setCurrentAnalysisRecord] = useState<AccountingRecord | null>(null);
   const [showMessageModal, setShowMessageModal] = useState(false);
+  const [activeTab, setActiveTab] = useState<'prestacoes' | 'inss'>('prestacoes');
   const [messageType, setMessageType] = useState<'approve' | 'reject' | 'gloss' | null>(null);
   const [messageContent, setMessageContent] = useState('');
   const [messageAttachments, setMessageAttachments] = useState<File[]>([]);
@@ -1041,6 +1044,42 @@ const AccountingAnalysis: React.FC = () => {
         </div>
       </div>
 
+      {/* Tabs */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+        <div className="border-b border-gray-200 dark:border-gray-700">
+          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+            <button
+              onClick={() => setActiveTab('prestacoes')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                activeTab === 'prestacoes'
+                  ? 'border-purple-500 text-purple-600 dark:text-purple-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <FileText size={16} />
+              <span>Prestações de Contas</span>
+            </button>
+            <button
+              onClick={() => setActiveTab('inss')}
+              className={`py-4 px-1 border-b-2 font-medium text-sm flex items-center space-x-2 ${
+                activeTab === 'inss'
+                  ? 'border-green-500 text-green-600 dark:text-green-400'
+                  : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
+              }`}
+            >
+              <Calculator size={16} />
+              <span>Recolhimentos INSS</span>
+            </button>
+          </nav>
+        </div>
+      </div>
+
+      {/* Tab Content */}
+      {activeTab === 'inss' ? (
+        <INSSAnalysis />
+      ) : (
+        <>
+
       {/* Records Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
         <div className="overflow-x-auto">
@@ -1349,6 +1388,8 @@ const AccountingAnalysis: React.FC = () => {
             </div>
           </div>
         </div>
+      )}
+        </>
       )}
     </div>
   );
