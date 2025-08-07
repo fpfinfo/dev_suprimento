@@ -25,10 +25,8 @@ import {
   Mail,
   CreditCard,
   Users,
-  Calculator,
   Download,
   Save,
-  Search,
   Users,
   Calculator
 } from 'lucide-react';
