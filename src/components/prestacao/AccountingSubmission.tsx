@@ -73,6 +73,7 @@ interface ServiceProvider {
   pisNit: string;
   fatherName: string;
   motherName: string;
+  municipio: string;
   documents: File[];
 }
 
@@ -817,16 +818,56 @@ const AccountingSubmission: React.FC = () => {
                       Descrição da Finalidade *
                     </label>
                     <textarea
-                    <input
-                      type="text"
+                      value={currentExpense.description || ''}
                       onChange={(e) => setCurrentExpense({...currentExpense, description: e.target.value})}
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                       placeholder="Descreva detalhadamente a finalidade da despesa"
                       required
-                      placeholder="Digite o município"
-                      required
                     />
+                  </div>
+
+                  {/* Upload de Arquivos */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                      Documentos Comprobatórios
+                    </label>
+                    <div className="border-2 border-dashed border-gray-300 dark:border-gray-600 rounded-lg p-6 text-center">
+                      <Upload size={48} className="mx-auto text-gray-400 dark:text-gray-500 mb-4" />
+                      <p className="text-gray-600 dark:text-gray-400 mb-2">Clique para selecionar ou arraste os arquivos</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">Formatos: PDF, JPG, PNG (máx. 10MB cada)</p>
+                      <input
+                        type="file"
+                        multiple
+                        accept=".pdf,.jpg,.jpeg,.png"
+                        onChange={(e) => handleFileUpload(e.target.files, 'expense')}
+                        className="hidden"
+                        id="expense-files"
+                      />
+                      <label
+                        htmlFor="expense-files"
+                        className="inline-flex items-center px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors"
+                      >
+                        <Upload size={16} className="mr-2" />
+                        Selecionar Arquivos
+                      </label>
+                    </div>
+                    
+                    {currentExpense.files && currentExpense.files.length > 0 && (
+                      <div className="mt-4 space-y-2">
+                        {currentExpense.files.map((file, index) => (
+                          <div key={index} className="flex items-center justify-between p-2 bg-gray-50 dark:bg-gray-700 rounded">
+                            <span className="text-sm text-gray-700 dark:text-gray-300">{file.name}</span>
+                            <button
+                              onClick={() => {
+                                const newFiles = currentExpense.files?.filter((_, i) => i !== index) || [];
+                                setCurrentExpense({...currentExpense, files: newFiles});
+                              }}
+                              className="text-red-500 hover:text-red-700"
+                            >
+                              <X size={16} />
+                            </button>
+                          </div>
                         ))}
                       </div>
                     )}
