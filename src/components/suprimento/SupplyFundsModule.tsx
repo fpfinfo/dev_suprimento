@@ -35,35 +35,6 @@ import {
   UserCheck
 } from 'lucide-react';
 
-
-interface SolicitacaoSuprimento {
-  id: string;
-  numeroProtocolo: string;
-  solicitante: string;
-  cpf: string;
-  telefone: string;
-  email: string;
-  departamento: string;
-  municipio: string;
-  gestor: string;
-  dadosBancarios: {
-    banco: string;
-    agencia: string;
-    conta: string;
-  };
-  valorTotal: number;
-  justificativa: string;
-  dataLimite: string;
-  status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado';
-  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
-  criadoEm: string;
-  elementos: ElementoDespesa[];
-  documentos: DocumentoAnexo[];
-  mensagens: Mensagem[];
-  notificacoes: Notificacao[];
-}
-
-
 interface ElementoDespesa {
   id: string;
   codigo: string;
@@ -100,19 +71,44 @@ interface Notificacao {
   prioridade: 'alta' | 'media' | 'baixa';
 }
 
+interface SolicitacaoSuprimento {
+  id: string;
+  numeroProtocolo: string;
+  solicitante: string;
+  cpf: string;
+  telefone: string;
+  email: string;
+  departamento: string;
+  municipio: string;
+  gestor: string;
+  dadosBancarios: {
+    banco: string;
+    agencia: string;
+    conta: string;
+  };
+  valorTotal: number;
+  justificativa: string;
+  dataLimite: string;
+  status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado';
+  prioridade: 'baixa' | 'media' | 'alta' | 'urgente';
+  criadoEm: string;
+  elementos: ElementoDespesa[];
+  documentos: DocumentoAnexo[];
+  mensagens: Mensagem[];
+  notificacoes: Notificacao[];
+}
 
 const SupplyFundsModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-const [statusFilter, setStatusFilter] = useState('all');
-const [priorityFilter, setPriorityFilter] = useState('all');
-const [showModal, setShowModal] = useState(false);
-const [showNotifications, setShowNotifications] = useState(false);
-const [showMessages, setShowMessages] = useState(false);
-const [currentStep, setCurrentStep] = useState(1);
-const [selectedSolicitacao, setSelectedSolicitacao] = useState<SolicitacaoSuprimento | null>(null);
-const [isEditing, setIsEditing] = useState(false);
-const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
-
+  const [statusFilter, setStatusFilter] = useState('all');
+  const [priorityFilter, setPriorityFilter] = useState('all');
+  const [showModal, setShowModal] = useState(false);
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showMessages, setShowMessages] = useState(false);
+  const [currentStep, setCurrentStep] = useState(1);
+  const [selectedSolicitacao, setSelectedSolicitacao] = useState<SolicitacaoSuprimento | null>(null);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
 
   // Dados simulados
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoSuprimento[]>([
@@ -226,7 +222,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     { codigo: '3.3.90.39.96', descricao: 'Outros Serviços de Terceiros - PJ' }
   ];
 
-  // Bancos disponíveis
+  // Bancos disponíveis (não usados por enquanto — ok)
   const bancosDisponiveis = [
     'Banco do Brasil',
     'Caixa Econômica Federal',
@@ -241,23 +237,23 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     const cleanCPF = cpf.replace(/[^\d]/g, '');
     if (cleanCPF.length !== 11) return false;
     if (/^(\d)\1{10}$/.test(cleanCPF)) return false;
-    
+
     let sum = 0;
     for (let i = 0; i < 9; i++) {
       sum += parseInt(cleanCPF.charAt(i)) * (10 - i);
     }
     let digit1 = 11 - (sum % 11);
     if (digit1 > 9) digit1 = 0;
-    
+
     sum = 0;
     for (let i = 0; i < 10; i++) {
       sum += parseInt(cleanCPF.charAt(i)) * (11 - i);
     }
     let digit2 = 11 - (sum % 11);
     if (digit2 > 9) digit2 = 0;
-    
-    return digit1 === parseInt(cleanCPF.charAt(9)) && 
-           digit2 === parseInt(cleanCPF.charAt(10));
+
+    return digit1 === parseInt(cleanCPF.charAt(9)) &&
+      digit2 === parseInt(cleanCPF.charAt(10));
   };
 
   // Validação de email
@@ -317,11 +313,21 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
       return;
     }
 
+    // Conversão robusta: aceita "1.234,56" e "1234.56"
+    const valorNumber = Number(
+      String(newElemento.valor).trim().replace(/\./g, '').replace(',', '.')
+    );
+
+    if (isNaN(valorNumber) || valorNumber <= 0) {
+      alert('Informe um valor válido maior que zero.');
+      return;
+    }
+
     const elemento: ElementoDespesa = {
       id: Date.now().toString(),
       codigo: newElemento.codigo,
       descricao: elementosDisponiveis.find(e => e.codigo === newElemento.codigo)?.descricao || '',
-      valor: parseFloat(newElemento.valor),
+      valor: valorNumber,
       justificativa: newElemento.justificativa
     };
 
@@ -463,11 +469,11 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
       return;
     }
 
-    const valorTotal = formData.elementos.reduce((sum, el) => sum + el.valor, 0);
+    const valorTotal = formData.elementos.reduce((sum, el) => sum + Number(el.valor || 0), 0);
 
     if (isEditing && selectedSolicitacao) {
-      setSolicitacoes(prev => prev.map(sol => 
-        sol.id === selectedSolicitacao.id 
+      setSolicitacoes(prev => prev.map(sol =>
+        sol.id === selectedSolicitacao.id
           ? {
               ...sol,
               ...formData,
@@ -521,8 +527,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
       tipo: 'usuario'
     };
 
-    setSolicitacoes(prev => prev.map(sol => 
-      sol.id === selectedSolicitacao.id 
+    setSolicitacoes(prev => prev.map(sol =>
+      sol.id === selectedSolicitacao.id
         ? { ...sol, mensagens: [...sol.mensagens, message] }
         : sol
     ));
@@ -533,11 +539,11 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   const markNotificationAsRead = (notificationId: string) => {
     if (!selectedSolicitacao) return;
 
-    setSolicitacoes(prev => prev.map(sol => 
-      sol.id === selectedSolicitacao.id 
+    setSolicitacoes(prev => prev.map(sol =>
+      sol.id === selectedSolicitacao.id
         ? {
             ...sol,
-            notificacoes: sol.notificacoes.map(not => 
+            notificacoes: sol.notificacoes.map(not =>
               not.id === notificationId ? { ...not, lida: true } : not
             )
           }
@@ -546,14 +552,14 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
   };
 
   const filteredSolicitacoes = solicitacoes.filter(sol => {
-    const matchesSearch = 
+    const matchesSearch =
       sol.solicitante.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sol.numeroProtocolo.toLowerCase().includes(searchTerm.toLowerCase()) ||
       sol.departamento.toLowerCase().includes(searchTerm.toLowerCase());
-    
+
     const matchesStatus = statusFilter === 'all' || sol.status === statusFilter;
     const matchesPriority = priorityFilter === 'all' || sol.prioridade === priorityFilter;
-    
+
     return matchesSearch && matchesStatus && matchesPriority;
   });
 
@@ -569,7 +575,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
     pendentes: solicitacoes.filter(s => s.status === 'pendente').length,
     aprovadas: solicitacoes.filter(s => s.status === 'aprovado').length,
     valorTotal: solicitacoes.reduce((sum, s) => sum + s.valorTotal, 0),
-    notificacoesNaoLidas: solicitacoes.reduce((sum, s) => 
+    notificacoesNaoLidas: solicitacoes.reduce((sum, s) =>
       sum + s.notificacoes.filter(n => !n.lida).length, 0
     )
   };
@@ -580,7 +586,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados do Suprido</h3>
-            
+
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -589,7 +595,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.solicitante}
-                  onChange={(e) => setFormData({...formData, solicitante: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, solicitante: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Nome completo do solicitante"
                 />
@@ -602,7 +608,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.cpf}
-                  onChange={(e) => setFormData({...formData, cpf: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, cpf: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     formData.cpf && !validateCPF(formData.cpf) ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -620,7 +626,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.telefone}
-                  onChange={(e) => setFormData({...formData, telefone: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, telefone: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="(91) 99999-9999"
                 />
@@ -633,7 +639,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="email"
                   value={formData.email}
-                  onChange={(e) => setFormData({...formData, email: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className={`w-full px-3 py-2 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent ${
                     formData.email && !validateEmail(formData.email) ? 'border-red-500' : 'border-gray-300'
                   }`}
@@ -651,7 +657,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.departamento}
-                  onChange={(e) => setFormData({...formData, departamento: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, departamento: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ex: Vara Criminal, Administrativo, TI"
                 />
@@ -664,7 +670,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.municipio}
-                  onChange={(e) => setFormData({...formData, municipio: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, municipio: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ex: Belém, Santarém, Marabá"
                 />
@@ -677,8 +683,8 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.gestor}
-                  onChange={(e) => setFormData({...formData, gestor: e.target.value})}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  onChange={(e) => setFormData({ ...formData, gestor: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus;border-transparent"
                   placeholder="Nome do gestor responsável"
                 />
               </div>
@@ -690,7 +696,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Dados Bancários</h3>
-            
+
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
               <div className="flex items-center">
                 <Info size={20} className="text-blue-600 mr-2" />
@@ -708,7 +714,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.banco}
-                  onChange={(e) => setFormData({...formData, banco: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, banco: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Ex: Banco do Brasil, Caixa Econômica Federal"
                 />
@@ -721,7 +727,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.agencia}
-                  onChange={(e) => setFormData({...formData, agencia: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, agencia: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="1234-5"
                 />
@@ -734,7 +740,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 <input
                   type="text"
                   value={formData.conta}
-                  onChange={(e) => setFormData({...formData, conta: e.target.value})}
+                  onChange={(e) => setFormData({ ...formData, conta: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="12345-6"
                 />
@@ -747,11 +753,11 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Elementos de Despesa</h3>
-            
+
             {/* Adicionar Elemento */}
             <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
               <h4 className="text-md font-medium text-gray-900 mb-3">Adicionar Elemento</h4>
-              
+
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -783,10 +789,10 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                     Valor (R$) *
                   </label>
                   <input
-                    type="number"
-                    step="0.01"
+                    type="text"
+                    inputMode="decimal"
                     value={newElemento.valor}
-                    onChange={(e) => setNewElemento({...newElemento, valor: e.target.value})}
+                    onChange={(e) => setNewElemento({ ...newElemento, valor: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="0,00"
                   />
@@ -798,7 +804,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                   </label>
                   <textarea
                     value={newElemento.justificativa}
-                    onChange={(e) => setNewElemento({...newElemento, justificativa: e.target.value})}
+                    onChange={(e) => setNewElemento({ ...newElemento, justificativa: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     rows={2}
                     placeholder="Justifique a necessidade deste elemento"
@@ -848,7 +854,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                     </div>
                   </div>
                 ))}
-                
+
                 <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-lg font-semibold text-blue-900">Total Geral:</span>
@@ -866,7 +872,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
         return (
           <div className="space-y-4">
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Anexar Documentos</h3>
-            
+
             <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
               <Upload size={48} className="mx-auto text-gray-400 mb-4" />
               <p className="text-gray-600 mb-4">
@@ -973,7 +979,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                   <h3 className="text-lg font-semibold text-gray-900">Notificações</h3>
                 </div>
                 <div className="max-h-96 overflow-y-auto">
-                  {solicitacoes.flatMap(sol => 
+                  {solicitacoes.flatMap(sol =>
                     sol.notificacoes.map(not => (
                       <div
                         key={`${sol.id}-${not.id}`}
@@ -1091,7 +1097,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
-          
+
           <div>
             <select
               className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
@@ -1243,7 +1249,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
             <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhuma solicitação encontrada</h3>
             <p className="text-gray-500">
               {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all'
-                ? 'Tente ajustar os filtros de busca.' 
+                ? 'Tente ajustar os filtros de busca.'
                 : 'Não há solicitações cadastradas no momento.'}
             </p>
           </div>
@@ -1339,7 +1345,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 >
                   Cancelar
                 </button>
-                
+
                 {currentStep < 4 ? (
                   <button
                     onClick={nextStep}
@@ -1498,7 +1504,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                       </div>
                     ))}
                   </div>
-                  
+
                   {/* Nova Mensagem */}
                   <div className="mt-4 space-y-2">
                     <textarea
@@ -1569,7 +1575,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
               <AlertCircle size={24} className="text-red-600 mr-3" />
               <h3 className="text-lg font-semibold text-gray-900">Confirmar Exclusão</h3>
             </div>
-            
+
             <p className="text-gray-600 mb-6">
               Tem certeza que deseja excluir esta solicitação? Esta ação não pode ser desfeita.
             </p>
@@ -1582,7 +1588,7 @@ const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
                 Cancelar
               </button>
               <button
-                onClick={() => deleteSolicitacao(showDeleteConfirm)}
+                onClick={() => showDeleteConfirm && deleteSolicitacao(showDeleteConfirm)}
                 className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
               >
                 Excluir
