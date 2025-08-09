@@ -24,7 +24,7 @@ const AppContent: React.FC = () => {
 
   return (
     <BreadcrumbProvider>
-      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
+      <div className="flex h-screen bg-gray-50 dark:bg-gray-900 transition-colors duration-200 safe-area-inset">
         <Sidebar 
           isOpen={sidebarOpen} 
           onClose={() => setSidebarOpen(false)}
@@ -45,8 +45,8 @@ const AppContent: React.FC = () => {
             onLogout={handleLogout}
           />
           
-          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-200">
-            <div className="container mx-auto px-6 py-8">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-50 dark:bg-gray-900 transition-colors duration-200 safe-area-bottom">
+            <div className="container mx-auto px-3 sm:px-6 py-4 sm:py-8">
               <Dashboard currentView={currentView} onViewChange={setCurrentView} />
             </div>
           </main>
@@ -54,7 +54,7 @@ const AppContent: React.FC = () => {
         
         {sidebarOpen && (
           <div
-            className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden"
+            className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden touch-manipulation"
             onClick={() => setSidebarOpen(false)}
           />
         )}

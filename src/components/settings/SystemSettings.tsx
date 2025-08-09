@@ -1185,20 +1185,20 @@ const SystemSettings: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
             <Settings size={24} className="text-purple-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Configurações do Sistema</h1>
-            <p className="text-gray-600 dark:text-gray-400">Gerencie todas as configurações do portal</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Configurações do Sistema</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Gerencie todas as configurações do sistema</p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
           {unsavedChanges && (
-            <div className="flex items-center text-orange-600 dark:text-orange-400">
+            <div className="flex items-center justify-center sm:justify-start text-orange-600 dark:text-orange-400 text-sm">
               <AlertTriangle size={16} className="mr-2" />
               <span className="text-sm">Alterações não salvas</span>
             </div>
@@ -1215,14 +1215,15 @@ const SystemSettings: React.FC = () => {
           <button
             onClick={saveConfig}
             disabled={saving || !unsavedChanges}
-            className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            className="flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-sm"
           >
             {saving ? (
               <RefreshCw size={16} className="mr-2 animate-spin" />
             ) : (
               <Save size={16} className="mr-2" />
             )}
-            {saving ? 'Salvando...' : 'Salvar Configurações'}
+            <span className="hidden sm:inline">Salvar Todas as Alterações</span>
+            <span className="sm:hidden">Salvar Tudo</span>
           </button>
         </div>
       </div>
@@ -1230,25 +1231,26 @@ const SystemSettings: React.FC = () => {
       {/* Tabs */}
       <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <div className="border-b border-gray-200 dark:border-gray-700">
-          <nav className="flex space-x-8 px-6" aria-label="Tabs">
+          <nav className="flex overflow-x-auto px-3 sm:px-6 scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center py-4 px-1 border-b-2 font-medium text-sm transition-colors ${
+                className={`flex items-center py-3 sm:py-4 px-2 sm:px-4 border-b-2 font-medium text-xs sm:text-sm transition-colors whitespace-nowrap flex-shrink-0 ${
                   activeTab === tab.id
                     ? 'border-blue-500 text-blue-600 dark:text-blue-400'
                     : 'border-transparent text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600'
                 }`}
               >
-                {tab.icon}
-                <span className="ml-2">{tab.label}</span>
+                <span className="mr-1 sm:mr-2">{tab.icon}</span>
+                <span className="hidden sm:inline">{tab.label}</span>
+                <span className="sm:hidden">{tab.label.split(' ')[0]}</span>
               </button>
             ))}
           </nav>
         </div>
 
-        <div className="p-6">
+        <div className="p-4 sm:p-6">
           {renderTabContent()}
         </div>
       </div>

@@ -236,10 +236,12 @@ const Sidebar: React.FC<SidebarProps> = ({
     <>
       {/* Mobile Overlay */}
       {isOpen && (
-        <div
-          className="fixed inset-0 z-20 bg-black bg-opacity-50 lg:hidden transition-opacity duration-300"
-          onClick={onClose}
-        />
+        <div className="lg:hidden">
+          <div
+            className="fixed inset-0 z-20 bg-black bg-opacity-50 transition-opacity duration-300"
+            onClick={onClose}
+          />
+        </div>
       )}
 
       {/* Sidebar */}
@@ -247,50 +249,50 @@ const Sidebar: React.FC<SidebarProps> = ({
         isOpen ? 'translate-x-0' : '-translate-x-full'
       } fixed inset-y-0 left-0 z-30 bg-white dark:bg-gray-800 shadow-2xl transform transition-all duration-300 ease-in-out lg:translate-x-0 lg:static lg:inset-0 ${
         isCollapsed ? 'w-20' : 'w-72'
-      }`}>
+      } max-w-[85vw] lg:max-w-none`}>
         
         {/* Header */}
-        <div className={`flex items-center h-16 px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white ${
+        <div className={`flex items-center h-14 sm:h-16 px-3 sm:px-4 bg-gradient-to-r from-blue-600 to-blue-700 text-white ${
           isCollapsed ? 'justify-center' : 'justify-between'
         }`}>
           {!isCollapsed && (
             <div className="flex items-center">
-              <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center mr-3">
-                <Scale size={20} />
+              <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center mr-2 sm:mr-3">
+                <Scale size={18} className="sm:w-5 sm:h-5" />
               </div>
               <div>
-                <div className="text-sm font-bold">Portal TJ-PA</div>
-                <div className="text-xs opacity-90">Sistema de Gestão</div>
+                <div className="text-xs sm:text-sm font-bold">Portal TJ-PA</div>
+                <div className="text-xs opacity-90 hidden sm:block">Sistema de Gestão</div>
               </div>
             </div>
           )}
           
           {isCollapsed && (
-            <div className="w-8 h-8 bg-white/20 rounded-lg flex items-center justify-center">
-              <Scale size={20} />
+            <div className="w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg flex items-center justify-center">
+              <Scale size={18} className="sm:w-5 sm:h-5" />
             </div>
           )}
 
           {/* Toggle Button - Desktop */}
           <button
             onClick={onToggleCollapse}
-            className="hidden lg:flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg hover:bg-white/30 transition-colors duration-200"
+            className="hidden lg:flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg hover:bg-white/30 transition-colors duration-200"
           >
-            {isCollapsed ? <ChevronRight size={16} /> : <X size={16} />}
+            {isCollapsed ? <ChevronRight size={14} className="sm:w-4 sm:h-4" /> : <X size={14} className="sm:w-4 sm:h-4" />}
           </button>
 
           {/* Close Button - Mobile */}
           <button
             onClick={onClose}
-            className="lg:hidden flex items-center justify-center w-8 h-8 bg-white/20 rounded-lg hover:bg-white/30 transition-colors duration-200"
+            className="lg:hidden flex items-center justify-center w-7 h-7 sm:w-8 sm:h-8 bg-white/20 rounded-lg hover:bg-white/30 transition-colors duration-200"
           >
-            <X size={16} />
+            <X size={14} className="sm:w-4 sm:h-4" />
           </button>
         </div>
 
         {/* Menu Content */}
         <div className="flex flex-col h-full overflow-y-auto scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
-          <div className="flex-1 py-6">
+          <div className="flex-1 py-4 sm:py-6">
             {renderSection('Menu Principal', menuItems, 'main')}
             {renderSection('Módulos', modules, 'module')}
             {(isAdmin() || isSuperAdmin()) && administration.length > 0 && renderSection('Administração', administration, 'admin')}
@@ -299,7 +301,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Footer */}
           {!isCollapsed && (
-            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
+            <div className="p-3 sm:p-4 border-t border-gray-200 dark:border-gray-700">
               <div className="text-xs text-gray-500 dark:text-gray-400 text-center">
                 <div className="font-medium">Sistema TJ-PA</div>
                 <div>Versão 2.1.0</div>

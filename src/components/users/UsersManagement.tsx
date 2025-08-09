@@ -291,46 +291,49 @@ const UsersManagement: React.FC = () => {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between bg-white dark:bg-gray-800 rounded-lg p-4 sm:p-6 shadow-sm border border-gray-200 dark:border-gray-700 space-y-4 sm:space-y-0">
         <div className="flex items-center space-x-3">
           <div className="w-10 h-10 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
             <Users size={24} className="text-blue-600" />
           </div>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gestão de Usuários</h1>
-            <p className="text-gray-600 dark:text-gray-400">Gerencie usuários do sistema com controle completo</p>
+            <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-gray-100">Gestão de Usuários</h1>
+            <p className="text-sm sm:text-base text-gray-600 dark:text-gray-400">Gerencie usuários do sistema com controle completo</p>
           </div>
         </div>
 
-        <div className="flex items-center space-x-3">
-          <button className="flex items-center px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors">
-            <Download size={16} className="mr-2" />
-            Template
+        <div className="flex flex-col sm:flex-row items-stretch sm:items-center space-y-2 sm:space-y-0 sm:space-x-3">
+          <button className="flex items-center justify-center px-3 sm:px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors text-sm">
+            <Download size={14} className="mr-2" />
+            <span className="hidden sm:inline">Template</span>
+            <span className="sm:hidden">Temp.</span>
           </button>
-          <button className="flex items-center px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors">
-            <Upload size={16} className="mr-2" />
-            Importar
+          <button className="flex items-center justify-center px-3 sm:px-4 py-2 bg-green-600 dark:bg-green-700 text-white rounded-lg hover:bg-green-700 dark:hover:bg-green-600 transition-colors text-sm">
+            <Upload size={14} className="mr-2" />
+            <span className="hidden sm:inline">Importar</span>
+            <span className="sm:hidden">Import</span>
           </button>
           <button
             onClick={() => openUserModal()}
-            className="flex items-center px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors"
+            className="flex items-center justify-center px-3 sm:px-4 py-2 bg-blue-600 dark:bg-blue-700 text-white rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm"
           >
-            <Plus size={16} className="mr-2" />
-            Novo Usuário
+            <Plus size={14} className="mr-2" />
+            <span className="hidden sm:inline">Novo Usuário</span>
+            <span className="sm:hidden">Novo</span>
           </button>
         </div>
       </div>
 
       {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-6">
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total de Usuários</p>
-              <p className="text-2xl font-bold text-blue-600">{stats.total}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Total de Usuários</p>
+              <p className="text-xl sm:text-2xl font-bold text-blue-600">{stats.total}</p>
             </div>
-            <div className="w-12 h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
-              <Users size={24} className="text-blue-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-blue-100 dark:bg-blue-900 rounded-lg flex items-center justify-center">
+              <Users size={20} className="sm:w-6 sm:h-6 text-blue-600" />
             </div>
           </div>
         </div>
@@ -338,23 +341,11 @@ const UsersManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Usuários Ativos</p>
-              <p className="text-2xl font-bold text-green-600">{stats.active}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Usuários Ativos</p>
+              <p className="text-xl sm:text-2xl font-bold text-green-600">{stats.active}</p>
             </div>
-            <div className="w-12 h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
-              <UserCheck size={24} className="text-green-600" />
-            </div>
-          </div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Administradores</p>
-              <p className="text-2xl font-bold text-purple-600">{stats.admins}</p>
-            </div>
-            <div className="w-12 h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
-              <Shield size={24} className="text-purple-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-green-100 dark:bg-green-900 rounded-lg flex items-center justify-center">
+              <UserCheck size={20} className="sm:w-6 sm:h-6 text-green-600" />
             </div>
           </div>
         </div>
@@ -362,34 +353,46 @@ const UsersManagement: React.FC = () => {
         <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Novos (30 dias)</p>
-              <p className="text-2xl font-bold text-orange-600">{stats.recent}</p>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Administradores</p>
+              <p className="text-xl sm:text-2xl font-bold text-purple-600">{stats.admins}</p>
             </div>
-            <div className="w-12 h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
-              <Clock size={24} className="text-orange-600" />
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-purple-100 dark:bg-purple-900 rounded-lg flex items-center justify-center">
+              <Shield size={20} className="sm:w-6 sm:h-6 text-purple-600" />
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-xs sm:text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">Novos (30 dias)</p>
+              <p className="text-xl sm:text-2xl font-bold text-orange-600">{stats.recent}</p>
+            </div>
+            <div className="w-10 h-10 sm:w-12 sm:h-12 bg-orange-100 dark:bg-orange-900 rounded-lg flex items-center justify-center">
+              <Clock size={20} className="sm:w-6 sm:h-6 text-orange-600" />
             </div>
           </div>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 sm:p-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" size={20} />
             <input
               type="text"
               placeholder="Nome, email ou cargo..."
-              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
           </div>
           
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Status</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
               value={statusFilter}
               onChange={(e) => setStatusFilter(e.target.value)}
             >
@@ -400,9 +403,9 @@ const UsersManagement: React.FC = () => {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Perfil</label>
+            <label className="block text-xs sm:text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Perfil</label>
             <select
-              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+              className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm"
               value={profileFilter}
               onChange={(e) => setProfileFilter(e.target.value)}
             >
@@ -413,10 +416,10 @@ const UsersManagement: React.FC = () => {
             </select>
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end sm:col-span-1 col-span-full">
             <button
               onClick={clearFilters}
-              className="w-full px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center"
+              className="w-full px-4 py-2 bg-gray-600 dark:bg-gray-700 text-white rounded-lg hover:bg-gray-700 dark:hover:bg-gray-600 transition-colors flex items-center justify-center text-sm"
             >
               <X size={16} className="mr-2" />
               Limpar
@@ -431,22 +434,22 @@ const UsersManagement: React.FC = () => {
           <table className="w-full">
             <thead className="bg-gray-50 dark:bg-gray-700">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                   Usuário
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden sm:table-cell">
                   Cargo
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider hidden md:table-cell">
                   Departamento
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Status
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Perfil
                 </th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                <th className="px-3 sm:px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Ações
                 </th>
               </tr>
@@ -454,9 +457,9 @@ const UsersManagement: React.FC = () => {
             <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
               {filteredUsers.map((user) => (
                 <tr key={user.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <div className="flex items-center">
-                      <div className="w-10 h-10 rounded-full mr-3 overflow-hidden">
+                      <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full mr-2 sm:mr-3 overflow-hidden flex-shrink-0">
                         {user.avatar ? (
                           <img 
                             src={user.avatar} 
@@ -465,26 +468,33 @@ const UsersManagement: React.FC = () => {
                           />
                         ) : (
                           <div className="w-full h-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
-                            <User size={20} className="text-blue-600" />
+                            <User size={16} className="sm:w-5 sm:h-5 text-blue-600" />
                           </div>
                         )}
                       </div>
                       <div>
-                        <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
-                        <div className="text-sm text-gray-500 dark:text-gray-400">{user.email}</div>
+                        <div className="text-xs sm:text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-[120px] sm:max-w-none">
+                          {user.name}
+                        </div>
+                        <div className="text-xs text-gray-500 dark:text-gray-400 truncate max-w-[120px] sm:max-w-none">
+                          {user.email}
+                        </div>
+                        <div className="sm:hidden text-xs text-gray-500 dark:text-gray-400">
+                          {user.position}
+                        </div>
                       </div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap hidden sm:table-cell">
                     <div>
-                      <div className="text-sm text-gray-900 dark:text-gray-100">{user.position}</div>
-                      <div className="text-sm text-gray-500 dark:text-gray-400">Mat: {user.positionCode}</div>
+                      <div className="text-xs sm:text-sm text-gray-900 dark:text-gray-100">{user.position}</div>
+                      <div className="text-xs text-gray-500 dark:text-gray-400">Mat: {user.positionCode}</div>
                     </div>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-xs sm:text-sm text-gray-900 hidden md:table-cell">
                     <span className="text-gray-900 dark:text-gray-100">{user.department}</span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <button
                       onClick={() => toggleUserStatus(user.id)}
                       className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full cursor-pointer hover:opacity-80 ${getStatusColor(user.status)}`}
@@ -492,33 +502,35 @@ const UsersManagement: React.FC = () => {
                       {user.status === 'ativo' ? 'Ativo' : 'Inativo'}
                     </button>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap">
                     <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getProfileColor(user.profile)}`}>
                       {getProfileLabel(user.profile)}
                     </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-sm font-medium space-x-2">
+                  <td className="px-3 sm:px-6 py-4 whitespace-nowrap text-sm font-medium">
+                    <div className="flex space-x-1 sm:space-x-2">
                     <button
                       onClick={() => setSelectedUser(user)}
                       className="text-blue-600 hover:text-blue-900"
                       title="Ver detalhes"
                     >
-                      <Eye size={16} />
+                      <Eye size={14} className="sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={() => openUserModal(user)}
                       className="text-green-600 hover:text-green-900"
                       title="Editar"
                     >
-                      <Edit size={16} />
+                      <Edit size={14} className="sm:w-4 sm:h-4" />
                     </button>
                     <button
                       onClick={() => setShowDeleteConfirm(user.id)}
                       className="text-red-600 hover:text-red-900"
                       title="Excluir"
                     >
-                      <Trash2 size={16} />
+                      <Trash2 size={14} className="sm:w-4 sm:h-4" />
                     </button>
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -528,9 +540,9 @@ const UsersManagement: React.FC = () => {
 
         {filteredUsers.length === 0 && (
           <div className="text-center py-12">
-            <Users size={48} className="mx-auto text-gray-300 mb-4" />
-            <h3 className="text-lg font-medium text-gray-900 mb-2">Nenhum usuário encontrado</h3>
-            <p className="text-gray-500">
+            <Users size={40} className="sm:w-12 sm:h-12 mx-auto text-gray-300 mb-4" />
+            <h3 className="text-base sm:text-lg font-medium text-gray-900 mb-2">Nenhum usuário encontrado</h3>
+            <p className="text-sm text-gray-500">
               {searchTerm || statusFilter !== 'all' || profileFilter !== 'all'
                 ? 'Tente ajustar os filtros de busca.' 
                 : 'Não há usuários cadastrados no momento.'}

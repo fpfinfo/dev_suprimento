@@ -88,7 +88,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
   );
 
   return (
-      <div className={`grid grid-cols-2 md:grid-cols-3 ${filteredActions.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-4`}>
+      <div className={`grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 ${filteredActions.length <= 4 ? 'lg:grid-cols-4' : 'lg:grid-cols-6'} gap-3 sm:gap-4`}>
         {filteredActions.map((action, index) => (
           <ActionButton
             key={index}
