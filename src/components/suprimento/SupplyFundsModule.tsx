@@ -86,7 +86,7 @@ interface SolicitacaoSuprimento {
     agencia: string;
     conta: string;
   };
-  valorTotal: number;
+  valorTotal: Number;
   justificativa: string;
   dataLimite: string;
   status: 'pendente' | 'em_analise' | 'aprovado' | 'rejeitado';
