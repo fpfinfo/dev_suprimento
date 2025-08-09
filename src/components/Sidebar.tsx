@@ -13,7 +13,8 @@ import {
   Shield,
   BarChart3,
   Menu,
-  X
+  X,
+  Database as DatabaseIcon
 } from 'lucide-react';
 
 interface SidebarProps {
@@ -129,7 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       onClick: () => onNavigate?.('system-settings')
     }] : []),
     ...(isSuperAdmin() ? [{
-      icon: <Database size={20} />,
+      icon: <DatabaseIcon size={20} />,
       label: 'Auditoria',
       onClick: () => onNavigate?.('audit-logs')
     }] : [])
