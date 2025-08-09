@@ -1,20 +1,20 @@
 import React, { useState } from 'react';
-import { 
-  Plus, 
-  Search, 
-  Filter, 
-  Eye, 
-  Edit, 
-  Trash2, 
-  DollarSign, 
-  FileText, 
-  Calendar, 
-  User, 
-  Building, 
-  AlertCircle, 
-  CheckCircle, 
-  Clock, 
-  X, 
+import {
+  Plus,
+  Search,
+  Filter,
+  Eye,
+  Edit,
+  Trash2,
+  DollarSign,
+  FileText,
+  Calendar,
+  User,
+  Building,
+  AlertCircle,
+  CheckCircle,
+  Clock,
+  X,
   Save,
   Download,
   Upload,
@@ -32,20 +32,9 @@ import {
   CheckCircle2,
   XCircle,
   History,
-  UserCheck,
-  MessageSquare,
-  Bell,
-  Send,
-  Paperclip,
-  CreditCard,
-  Calculator,
-  AlertTriangle,
-  Info,
-  CheckCircle2,
-  XCircle,
-  History,
   UserCheck
 } from 'lucide-react';
+
 
 interface SolicitacaoSuprimento {
   id: string;
