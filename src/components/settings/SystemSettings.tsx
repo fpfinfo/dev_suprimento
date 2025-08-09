@@ -1,46 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../contexts/AuthContext';
-import { 
-  Settings, 
-  Database, 
-  Shield, 
-  Bell, 
-  Mail, 
-  Users, 
-  FileText, 
-  DollarSign,
-  Clock,
-  Globe,
-  Lock,
-  Eye,
-  EyeOff,
-  Save,
-  RefreshCw,
-  Download,
-  Upload,
-  Trash2,
-  AlertTriangle,
-  CheckCircle,
-  Info,
-  Server,
-  HardDrive,
-  Wifi,
-  Monitor,
-  Palette,
-  Languages,
-  Calendar,
-  CreditCard,
-  Zap,
-  Activity,
-  BarChart3,
-  PieChart,
-  TrendingUp,
-  Archive,
-  Key,
-  UserCheck,
-  Sliders,
-  Toggle
-} from 'lucide-react';
+import { Settings, Database, Shield, Bell, Mail, Users, FileText, DollarSign, Clock, Globe, Lock, Eye, EyeOff, Save, RefreshCw, Download, Upload, Trash2, AlertTriangle, CheckCircle, Info, Server, HardDrive, Wifi, Monitor, Palette, Languages, Calendar, CreditCard, Zap, Activity, BarChart3, PieChart, TrendingUp, Archive, Key, UserCheck, Sliders, ToggleLeft as Toggle } from 'lucide-react';
 
 interface SystemConfig {
   // Configurações Gerais
