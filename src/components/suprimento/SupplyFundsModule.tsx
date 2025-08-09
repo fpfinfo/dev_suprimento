@@ -103,18 +103,16 @@ interface Notificacao {
 
 const SupplyFundsModule: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState('all');
-  const [priorityFilter, setPriorityFilter] = useState('all');
-  const [showModal, setShowModal] = useState(false);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showMessages, setShowMessages] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [showNotifications, setShowNotifications] = useState(false);
-  const [showMessages, setShowMessages] = useState(false);
-  const [currentStep, setCurrentStep] = useState(1);
-  const [selectedSolicitacao, setSelectedSolicitacao] = useState<SolicitacaoSuprimento | null>(null);
-  const [isEditing, setIsEditing] = useState(false);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+const [statusFilter, setStatusFilter] = useState('all');
+const [priorityFilter, setPriorityFilter] = useState('all');
+const [showModal, setShowModal] = useState(false);
+const [showNotifications, setShowNotifications] = useState(false);
+const [showMessages, setShowMessages] = useState(false);
+const [currentStep, setCurrentStep] = useState(1);
+const [selectedSolicitacao, setSelectedSolicitacao] = useState<SolicitacaoSuprimento | null>(null);
+const [isEditing, setIsEditing] = useState(false);
+const [showDeleteConfirm, setShowDeleteConfirm] = useState<string | null>(null);
+
 
   // Dados simulados
   const [solicitacoes, setSolicitacoes] = useState<SolicitacaoSuprimento[]>([
