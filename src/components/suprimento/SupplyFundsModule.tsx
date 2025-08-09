@@ -51,17 +51,6 @@ interface SolicitacaoSuprimento {
     agencia: string;
     conta: string;
   };
-  cpf: string;
-  telefone: string;
-  email: string;
-  departamento: string;
-  municipio: string;
-  gestor: string;
-  dadosBancarios: {
-    banco: string;
-    agencia: string;
-    conta: string;
-  };
   valorTotal: number;
   justificativa: string;
   dataLimite: string;
@@ -72,10 +61,8 @@ interface SolicitacaoSuprimento {
   documentos: DocumentoAnexo[];
   mensagens: Mensagem[];
   notificacoes: Notificacao[];
-  documentos: DocumentoAnexo[];
-  mensagens: Mensagem[];
-  notificacoes: Notificacao[];
 }
+
 
 interface ElementoDespesa {
   id: string;
