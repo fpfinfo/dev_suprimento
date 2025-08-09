@@ -32,7 +32,7 @@ interface UserData {
   position: string;
   positionCode: string;
   department: string;
-  profile: 'administrador' | 'suprido';
+  profile: 'super_admin' | 'administrador' | 'suprido';
   status: 'ativo' | 'inativo';
   createdAt: string;
   lastLogin?: string;
@@ -87,6 +87,21 @@ const UsersManagement: React.FC = () => {
   const [users, setUsers] = useState<UserData[]>([
     {
       id: '1',
+      name: 'Super Administrador',
+      email: 'superadmin@tjpa.jus.br',
+      phone: '(91) 99999-0000',
+      cpf: '000.000.000-00',
+      position: 'Super Administrador do Sistema',
+      positionCode: 'SA001',
+      department: 'TI',
+      profile: 'super_admin',
+      status: 'ativo',
+      createdAt: '2024-01-10',
+      lastLogin: '2024-01-20 11:00',
+      avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
+    },
+    {
+      id: '2',
       name: 'Administrador Sistema',
       email: 'admin@tjpa.jus.br',
       phone: '(91) 99999-9999',
@@ -101,7 +116,7 @@ const UsersManagement: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
     },
     {
-      id: '2',
+      id: '3',
       name: 'Fábio Freitas',
       email: 'fabio.freitas@tjpa.jus.br',
       phone: '(91) 88888-8888',
@@ -116,7 +131,7 @@ const UsersManagement: React.FC = () => {
       avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
     },
     {
-      id: '3',
+      id: '4',
       name: 'Servidor Suprido',
       email: 'servidor@tjpa.jus.br',
       phone: '(91) 77777-7777',
@@ -140,7 +155,7 @@ const UsersManagement: React.FC = () => {
     position: '',
     positionCode: '',
     department: '',
-    profile: 'suprido',
+    profile: 'suprido' as 'super_admin' | 'administrador' | 'suprido',
     status: 'ativo',
     avatar: ''
   });
@@ -149,7 +164,7 @@ const UsersManagement: React.FC = () => {
   const stats = {
     total: users.length,
     active: users.filter(u => u.status === 'ativo').length,
-    admins: users.filter(u => u.profile === 'administrador').length,
+    admins: users.filter(u => u.profile === 'administrador' || u.profile === 'super_admin').length,
     recent: users.filter(u => {
       const createdDate = new Date(u.createdAt);
       const thirtyDaysAgo = new Date();
@@ -165,13 +180,25 @@ const UsersManagement: React.FC = () => {
   };
 
   const getProfileColor = (profile: string) => {
-    return profile === 'administrador' 
-      ? 'bg-purple-100 text-purple-800' 
-      : 'bg-blue-100 text-blue-800';
+    switch (profile) {
+      case 'super_admin':
+        return 'bg-red-100 text-red-800';
+      case 'administrador':
+        return 'bg-purple-100 text-purple-800';
+      default:
+        return 'bg-blue-100 text-blue-800';
+    }
   };
 
   const getProfileLabel = (profile: string) => {
-    return profile === 'administrador' ? 'Admin' : 'Suprido';
+    switch (profile) {
+      case 'super_admin':
+        return 'Super Admin';
+      case 'administrador':
+        return 'Admin';
+      default:
+        return 'Suprido';
+    }
   };
 
   const openUserModal = (user?: UserData) => {
@@ -381,6 +408,7 @@ const UsersManagement: React.FC = () => {
             >
               <option value="all">Todos</option>
               <option value="administrador">Administrador</option>
+             <option value="super_admin">Super Administrador</option>
               <option value="suprido">Suprido</option>
             </select>
           </div>
@@ -818,11 +846,12 @@ const UsersManagement: React.FC = () => {
                   </label>
                   <select
                     value={formData.profile || 'suprido'}
-                    onChange={(e) => setFormData({...formData, profile: e.target.value as 'administrador' | 'suprido'})}
+                    onChange={(e) => setFormData({...formData, profile: e.target.value as 'super_admin' | 'administrador' | 'suprido'})}
                     className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
                   >
                     <option value="suprido">Suprido</option>
                     <option value="administrador">Administrador</option>
+                    <option value="super_admin">Super Administrador</option>
                   </select>
                 </div>
 

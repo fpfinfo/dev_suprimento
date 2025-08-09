@@ -13,7 +13,7 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) => {
   const { breadcrumbs } = useBreadcrumb();
   const { theme, toggleTheme, isDark } = useTheme();
-  const { user: authUser } = useAuth();
+  const { user: authUser, getUserTypeLabel, isSuperAdmin, isAdmin } = useAuth();
 
   const user = authUser || currentUser || {
     name: 'Usuário',
@@ -49,12 +49,19 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) =
         <div className="flex items-center space-x-4">
           {/* User Role Indicator */}
           <div className="hidden md:flex items-center">
-            <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-              user.role === 'administrador' 
+            <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+              isSuperAdmin()
+                ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200'
+                : isAdmin()
                 ? 'bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200' 
                 : 'bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200'
             }`}>
-              {user.role === 'administrador' ? (
+              {isSuperAdmin() ? (
+                <>
+                  <Shield size={12} className="mr-1" />
+                  Super Admin
+                </>
+              ) : isAdmin() ? (
                 <>
                   <Shield size={12} className="mr-1" />
                   Admin
@@ -87,7 +94,7 @@ const Header: React.FC<HeaderProps> = ({ onMenuClick, currentUser, onLogout }) =
             <div className="text-right">
               <div className="text-sm font-medium text-gray-900 dark:text-gray-100">{user.name}</div>
               <div className="text-xs text-gray-500 dark:text-gray-400">
-                {user.role === 'administrador' ? 'Administrador' : 'Suprido'}
+                {getUserTypeLabel()}
               </div>
             </div>
             

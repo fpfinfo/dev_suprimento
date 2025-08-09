@@ -28,7 +28,7 @@ interface QuickActionsProps {
 }
 
 const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
-  const { user, canAccessModule } = useAuth();
+  const { user, canAccessModule, isSuperAdmin, isAdmin } = useAuth();
 
   const actions = [
     {
@@ -45,7 +45,7 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       onClick: () => onNavigate?.('accounting-submission'),
       module: 'accounting-submission'
     },
-    ...(user?.role === 'administrador' ? [{
+    ...(isAdmin() || isSuperAdmin() ? [{
       title: 'SOSFU - Análise',
       icon: <Settings size={24} className="text-green-600" />,
       iconBg: 'bg-green-100',
@@ -59,19 +59,26 @@ const QuickActions: React.FC<QuickActionsProps> = ({ onNavigate }) => {
       onClick: () => onNavigate?.('reimbursement-submission'),
       module: 'reimbursement-submission'
     },
-    ...(user?.role === 'administrador' ? [{
+    ...(isAdmin() || isSuperAdmin() ? [{
       title: 'Usuários',
       icon: <Settings size={24} className="text-red-600" />,
       iconBg: 'bg-red-100',
       onClick: () => onNavigate?.('users-management'),
       module: 'users-management'
     }] : []),
-    ...(user?.role === 'administrador' ? [{
+    ...(isSuperAdmin() ? [{
       title: 'Configurações',
       icon: <Settings size={24} className="text-gray-600" />,
       iconBg: 'bg-gray-100',
       onClick: () => onNavigate?.('system-settings'),
       module: 'system-settings'
+    }] : []),
+    ...(isSuperAdmin() ? [{
+      title: 'Auditoria',
+      icon: <Settings size={24} className="text-orange-600" />,
+      iconBg: 'bg-orange-100',
+      onClick: () => onNavigate?.('audit-logs'),
+      module: 'audit-logs'
     }] : [])
   ];
 

@@ -52,7 +52,7 @@ interface RecentActivity {
 }
 
 const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
-  const { user, hasPermission } = useAuth();
+  const { user, hasPermission, getUserTypeLabel, isSuperAdmin, isAdmin, isSuprido } = useAuth();
   const { setBreadcrumbs } = useBreadcrumb();
   const [stats, setStats] = useState<DashboardStats>({
     totalSolicitacoes: 0,
@@ -98,8 +98,50 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
     
     try {
       // Simular carregamento de dados baseado no perfil do usuário
-      if (user?.role === 'administrador') {
-        // Dados completos para administrador
+      if (isSuperAdmin()) {
+        // Dados completos para super administrador
+        setStats({
+          totalSolicitacoes: 256,
+          valorTotalProcessado: 4850000,
+          pendentesAnalise: 35,
+          taxaAprovacao: 92,
+          solicitacoesPendentes: 18,
+          prestacoesPendentes: 12,
+          reembolsosPendentes: 8,
+          valorMedioSolicitacao: 18945
+        });
+
+        setRecentActivities([
+          {
+            id: '1',
+            type: 'solicitacao',
+            title: 'Sistema: Backup automático executado',
+            description: 'Backup completo do banco de dados realizado',
+            time: 'Há 5 minutos',
+            status: 'success',
+            user: 'Sistema'
+          },
+          {
+            id: '2',
+            type: 'aprovacao',
+            title: 'Novo administrador cadastrado',
+            description: 'Carlos Silva adicionado como administrador',
+            time: 'Há 30 minutos',
+            status: 'info',
+            user: 'Super Admin'
+          },
+          {
+            id: '3',
+            type: 'solicitacao',
+            title: 'Configuração atualizada',
+            description: 'Limite de suprimento alterado para R$ 60.000',
+            time: 'Há 1 hora',
+            status: 'warning',
+            user: 'Super Admin'
+          }
+        ]);
+      } else if (isAdmin()) {
+        // Dados para administrador
         setStats({
           totalSolicitacoes: 156,
           valorTotalProcessado: 2450000,
@@ -150,7 +192,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
           }
         ]);
       } else {
-        // Dados limitados para suprido (apenas seus próprios dados)
+        // Dados limitados para suprido
         setStats({
           totalSolicitacoes: 8,
           valorTotalProcessado: 45000,
@@ -248,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  {user?.role === 'administrador' ? 'Total de Solicitações' : 'Minhas Solicitações'}
+                  {isSuperAdmin() || isAdmin() ? 'Total de Solicitações' : 'Minhas Solicitações'}
                 </p>
                 <p className="text-2xl font-bold text-blue-600">{stats.totalSolicitacoes}</p>
               </div>
@@ -278,7 +320,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-gray-600 dark:text-gray-400 mb-1">
-                  {user?.role === 'administrador' ? 'Pendentes de Análise' : 'Aguardando Análise'}
+                  {isSuperAdmin() || isAdmin() ? 'Pendentes de Análise' : 'Aguardando Análise'}
                 </p>
                 <p className="text-2xl font-bold text-orange-600">{stats.pendentesAnalise}</p>
               </div>
@@ -396,7 +438,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 shadow-sm border border-gray-200 dark:border-gray-700">
             <div className="flex items-center justify-between mb-6">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
-                {user?.role === 'administrador' ? 'Atividades Recentes do Sistema' : 'Suas Atividades Recentes'}
+                {isSuperAdmin() || isAdmin() ? 'Atividades Recentes do Sistema' : 'Suas Atividades Recentes'}
               </h3>
               <Activity size={20} className="text-gray-600" />
             </div>
@@ -418,7 +460,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
                       <p className="text-xs text-gray-500 dark:text-gray-500">
                         {activity.time}
                       </p>
-                      {activity.user && user?.role === 'administrador' && (
+                      {activity.user && (isSuperAdmin() || isAdmin()) && (
                         <p className="text-xs text-gray-500 dark:text-gray-500">
                           {activity.user}
                         </p>
@@ -446,7 +488,36 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
             </div>
             
             <div className="space-y-4">
-              {user?.role === 'administrador' ? (
+              {isSuperAdmin() ? (
+                <>
+                  <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
+                    <div className="flex items-center">
+                      <AlertTriangle size={16} className="text-red-600 mr-2" />
+                      <span className="text-sm font-medium text-red-800 dark:text-red-300">
+                        Sistema: 2 backups falharam esta semana
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg">
+                    <div className="flex items-center">
+                      <Clock size={16} className="text-yellow-600 mr-2" />
+                      <span className="text-sm font-medium text-yellow-800 dark:text-yellow-300">
+                        35 processos aguardando análise geral
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="p-4 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg">
+                    <div className="flex items-center">
+                      <Users size={16} className="text-blue-600 mr-2" />
+                      <span className="text-sm font-medium text-blue-800 dark:text-blue-300">
+                        5 novos usuários cadastrados hoje
+                      </span>
+                    </div>
+                  </div>
+                </>
+              ) : isAdmin() ? (
                 <>
                   <div className="p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg">
                     <div className="flex items-center">
@@ -542,10 +613,12 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
         <div className="flex items-center justify-between">
           <div>
             <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {user?.role === 'administrador' ? 'Painel Administrativo' : 'Meu Painel'}
+              {isSuperAdmin() ? 'Painel Super Administrativo' : isAdmin() ? 'Painel Administrativo' : 'Meu Painel'}
             </h1>
             <p className="text-gray-600 dark:text-gray-400 mt-1">
-              {user?.role === 'administrador' 
+              {isSuperAdmin()
+                ? 'Controle total do sistema com acesso a todas as funcionalidades'
+                : isAdmin()
                 ? 'Visão geral completa do sistema de gestão financeira'
                 : 'Acompanhe suas solicitações, prestações e reembolsos'
               }
@@ -556,7 +629,7 @@ const Dashboard: React.FC<DashboardProps> = ({ currentView, onViewChange }) => {
               Bem-vindo, {user?.name}
             </p>
             <p className="text-xs text-gray-400 dark:text-gray-500">
-              {user?.role === 'administrador' ? 'Administrador' : 'Suprido'} • {user?.department}
+              {getUserTypeLabel()} • {user?.department}
             </p>
           </div>
         </div>

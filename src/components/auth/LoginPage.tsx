@@ -229,6 +229,19 @@ const LoginPage: React.FC<LoginPageProps> = ({
 
         {/* Demo Credentials */}
         <div className="mt-6 space-y-4">
+          <div className="p-4 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-200 dark:border-red-800">
+            <div className="flex items-center mb-2">
+              <Shield size={16} className="text-red-600 mr-2" />
+              <span className="text-sm font-medium text-red-800 dark:text-red-300">
+                Super Administrador
+              </span>
+            </div>
+            <div className="text-sm text-red-700 dark:text-red-400 space-y-1">
+              <p><strong>Email:</strong> superadmin@tjpa.jus.br</p>
+              <p><strong>Senha:</strong> 123456</p>
+            </div>
+          </div>
+          
           <div className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
             <div className="flex items-center mb-2">
               <Shield size={16} className="text-blue-600 mr-2" />
@@ -239,6 +252,35 @@ const LoginPage: React.FC<LoginPageProps> = ({
             <div className="text-sm text-blue-700 dark:text-blue-400 space-y-1">
               <p><strong>Email:</strong> admin@tjpa.jus.br</p>
               <p><strong>Senha:</strong> 123456</p>
+            </div>
+          </div>
+          
+          <div className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-lg border border-purple-200 dark:border-purple-800">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center">
+                <User size={16} className="text-purple-600 mr-2" />
+                <span className="text-sm font-medium text-purple-800 dark:text-purple-300">
+                  Outro Admin
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  setFormData({
+                    ...formData,
+                    email: 'fabio.freitas@tjpa.jus.br',
+                    password: '123456'
+                  });
+                }}
+                className="px-3 py-1 bg-purple-600 text-white text-xs rounded-md hover:bg-purple-700 transition-colors"
+              >
+                Usar credenciais
+              </button>
+            </div>
+            <div className="text-sm text-purple-700 dark:text-purple-400 space-y-1">
+              <p><strong>Email:</strong> fabio.freitas@tjpa.jus.br</p>
+              <p><strong>Senha:</strong> 123456</p>
+              <p className="text-xs mt-2 opacity-75">• Fábio Freitas • Analista de Sistemas</p>
             </div>
           </div>
           

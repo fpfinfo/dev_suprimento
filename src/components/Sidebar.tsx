@@ -42,7 +42,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [expandedItems, setExpandedItems] = useState<string[]>(['suprimento']);
   const [hoveredItem, setHoveredItem] = useState<string | null>(null);
-  const { user, canAccessModule } = useAuth();
+  const { user, canAccessModule, isSuperAdmin, isAdmin } = useAuth();
 
   const toggleExpanded = (key: string) => {
     if (isCollapsed) return;
@@ -93,7 +93,7 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const administration: MenuItem[] = [
-    ...(user?.role === 'administrador' ? [{
+    ...(isAdmin() || isSuperAdmin() ? [{
       icon: <Shield size={20} />,
       label: 'SOSFU - Supervisão',
       badge: 8,
@@ -115,7 +115,7 @@ const Sidebar: React.FC<SidebarProps> = ({
         }
       ]
     }] : []),
-    ...(user?.role === 'administrador' ? [{
+    ...(isAdmin() || isSuperAdmin() ? [{
       icon: <Users size={20} />,
       label: 'Usuários',
       onClick: () => onNavigate?.('users-management')
@@ -123,10 +123,15 @@ const Sidebar: React.FC<SidebarProps> = ({
   ];
 
   const system: MenuItem[] = [
-    ...(user?.role === 'administrador' ? [{
+    ...(isSuperAdmin() ? [{
       icon: <Settings size={20} />,
       label: 'Configurações',
       onClick: () => onNavigate?.('system-settings')
+    }] : []),
+    ...(isSuperAdmin() ? [{
+      icon: <Database size={20} />,
+      label: 'Auditoria',
+      onClick: () => onNavigate?.('audit-logs')
     }] : [])
   ];
 
@@ -287,8 +292,8 @@ const Sidebar: React.FC<SidebarProps> = ({
           <div className="flex-1 py-6">
             {renderSection('Menu Principal', menuItems, 'main')}
             {renderSection('Módulos', modules, 'module')}
-            {user?.role === 'administrador' && administration.length > 0 && renderSection('Administração', administration, 'admin')}
-            {user?.role === 'administrador' && system.length > 0 && renderSection('Sistema', system, 'system')}
+            {(isAdmin() || isSuperAdmin()) && administration.length > 0 && renderSection('Administração', administration, 'admin')}
+            {isSuperAdmin() && system.length > 0 && renderSection('Sistema', system, 'system')}
           </div>
 
           {/* Footer */}
